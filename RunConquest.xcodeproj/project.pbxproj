@@ -6,8 +6,14 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		1BDF6D152F8C179D00650E72 /* MapboxMaps in Frameworks */ = {isa = PBXBuildFile; productRef = 1BDF6D142F8C179D00650E72 /* MapboxMaps */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
 		1B293C9D2F8AB3320032CA92 /* RunConquest.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = RunConquest.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		AA0000012F8AB3320032AA01 /* Secrets.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; path = Secrets.xcconfig; sourceTree = "<group>"; };
+		AA0000022F8AB3320032AA01 /* Secrets.example.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; path = Secrets.example.xcconfig; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -23,6 +29,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				1BDF6D152F8C179D00650E72 /* MapboxMaps in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -34,6 +41,8 @@
 			children = (
 				1B293C9F2F8AB3320032CA92 /* RunConquest */,
 				1B293C9E2F8AB3320032CA92 /* Products */,
+				AA0000012F8AB3320032AA01 /* Secrets.xcconfig */,
+				AA0000022F8AB3320032AA01 /* Secrets.example.xcconfig */,
 			);
 			sourceTree = "<group>";
 		};
@@ -65,6 +74,7 @@
 			);
 			name = RunConquest;
 			packageProductDependencies = (
+				1BDF6D142F8C179D00650E72 /* MapboxMaps */,
 			);
 			productName = RunConquest;
 			productReference = 1B293C9D2F8AB3320032CA92 /* RunConquest.app */;
@@ -94,6 +104,9 @@
 			);
 			mainGroup = 1B293C942F8AB3320032CA92;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				1BDF6D132F8C179D00650E72 /* XCLocalSwiftPackageReference "../../../Downloads/mapbox-maps-ios-11.21.1" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 1B293C9E2F8AB3320032CA92 /* Products */;
 			projectDirPath = "";
@@ -248,6 +261,7 @@
 		};
 		1B293CA92F8AB3330032CA92 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = AA0000012F8AB3320032AA01 /* Secrets.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -256,6 +270,7 @@
 				DEVELOPMENT_TEAM = 98MVBRPSSW;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_MBXAccessToken = "$(MAPBOX_ACCESS_TOKEN)";
 				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "Нужно для отслеживания маршрута в фоне";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Нужно для отслеживания маршрута во время пробежки";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -282,6 +297,7 @@
 		};
 		1B293CAA2F8AB3330032CA92 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = AA0000012F8AB3320032AA01 /* Secrets.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -290,6 +306,7 @@
 				DEVELOPMENT_TEAM = 98MVBRPSSW;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_MBXAccessToken = "$(MAPBOX_ACCESS_TOKEN)";
 				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "Нужно для отслеживания маршрута в фоне";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Нужно для отслеживания маршрута во время пробежки";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -336,6 +353,20 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		1BDF6D132F8C179D00650E72 /* XCLocalSwiftPackageReference "../../../Downloads/mapbox-maps-ios-11.21.1" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = "../../../Downloads/mapbox-maps-ios-11.21.1";
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		1BDF6D142F8C179D00650E72 /* MapboxMaps */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = MapboxMaps;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 1B293C952F8AB3320032CA92 /* Project object */;
 }

@@ -1,5 +1,6 @@
 # Secrets — не публиковать ключи!
 RunConquest/Secrets.swift
+Secrets.xcconfig
 
 # Xcode
 *.xcworkspace/xcuserdata/
