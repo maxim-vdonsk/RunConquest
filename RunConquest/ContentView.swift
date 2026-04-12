@@ -75,7 +75,7 @@ struct ContentView: View {
                         attackedIds: attackedIds
                     )
                     .ignoresSafeArea()
-                    .onChange(of: locationManager.routeCoordinates.count) { _ in checkAttacks() }
+                    .onChange(of: locationManager.routeCoordinates.count) { checkAttacks() }
 
                     if showAttackFlash {
                         Color.red.opacity(0.25).ignoresSafeArea()

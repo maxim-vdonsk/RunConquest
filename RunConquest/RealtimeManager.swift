@@ -21,9 +21,11 @@ class RealtimeManager {
             {"topic":"realtime:public:runs","event":"phx_join","payload":{"config":{"broadcast":{"self":true},"presence":{"key":""},"postgres_changes":[{"event":"*","schema":"public","table":"runs"}]}},"ref":"1"}
             """))
             pingTimer = Timer.scheduledTimer(withTimeInterval: 20, repeats: true) { [weak self] _ in
-                self?.webSocketTask?.send(.string("""
-                {"topic":"realtime:public:runs","event":"heartbeat","payload":{},"ref":"ping"}
-                """)) { _ in }
+                Task { @MainActor [weak self] in
+                    self?.webSocketTask?.send(.string("""
+                    {"topic":"realtime:public:runs","event":"heartbeat","payload":{},"ref":"ping"}
+                    """)) { _ in }
+                }
             }
             await listenForMessages()
         }

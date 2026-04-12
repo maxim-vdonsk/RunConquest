@@ -23,7 +23,7 @@ class SupabaseService {
               let coordString = String(data: coordData, encoding: .utf8),
               let bodyData = try? JSONSerialization.data(withJSONObject: ["player_name": playerName, "coordinates": coordString, "color": color, "is_active": "true"]),
               let request = makeRequest("/rest/v1/runs", method: "POST", body: bodyData) else { return }
-        try? await URLSession.shared.data(for: request)
+        _ = try? await URLSession.shared.data(for: request)
     }
 
     func deactivateRuns(ids: [String]) async {
