@@ -7,7 +7,7 @@ class SupabaseService {
     static let shared = SupabaseService()
 
     private func makeRequest(_ path: String, method: String = "GET", body: Data? = nil) -> URLRequest? {
-        guard let url = URL(string: "\(SUPABASE_URL)\(path)") else { return nil }
+        guard let url = URL(string: SUPABASE_URL + path) else { return nil }
         var request = URLRequest(url: url)
         request.httpMethod = method
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
