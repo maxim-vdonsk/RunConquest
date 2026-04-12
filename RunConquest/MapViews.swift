@@ -13,11 +13,11 @@ struct RunMapView: UIViewRepresentable {
     var attackedIds: Set<String>
 
     func makeUIView(context: Context) -> MapboxMaps.MapView {
+        MapboxOptions.accessToken = MAPBOX_TOKEN
         let initOptions = MapInitOptions(
             styleURI: StyleURI(rawValue: MAPBOX_STYLE)
         )
         let mapView = MapboxMaps.MapView(frame: .zero, mapInitOptions: initOptions)
-        mapView.mapboxMap.mapboxToken = MAPBOX_TOKEN
         mapView.location.options.puckType = .puck2D(.makeDefault(showBearing: true))
         mapView.location.options.puckBearingEnabled = true
         context.coordinator.mapView = mapView
@@ -27,7 +27,6 @@ struct RunMapView: UIViewRepresentable {
     func updateUIView(_ mapView: MapboxMaps.MapView, context: Context) {
         let camera = CameraOptions(center: region.center, zoom: 15.5)
         mapView.camera.ease(to: camera, duration: 0.5)
-
         context.coordinator.updateOverlays(
             mapView: mapView,
             routeCoordinates: routeCoordinates,
@@ -45,10 +44,8 @@ struct RunMapView: UIViewRepresentable {
         var addedLayerIds: Set<String> = []
 
         func updateOverlays(mapView: MapboxMaps.MapView, routeCoordinates: [CLLocationCoordinate2D], otherRuns: [RunRecord], myColor: String, attackedIds: Set<String>) {
-            let style = mapView.mapboxMap.style
-
-            for layerId in addedLayerIds { try? style.removeLayer(withId: layerId) }
-            for sourceId in addedSourceIds { try? style.removeSource(withId: sourceId) }
+            for layerId in addedLayerIds { try? mapView.mapboxMap.removeLayer(withId: layerId) }
+            for sourceId in addedSourceIds { try? mapView.mapboxMap.removeSource(withId: sourceId) }
             addedLayerIds.removeAll()
             addedSourceIds.removeAll()
 
@@ -57,48 +54,45 @@ struct RunMapView: UIViewRepresentable {
                 let id = run.id ?? UUID().uuidString
                 let isAttacked = attackedIds.contains(run.id ?? "")
                 let colorHex = isAttacked ? "#ff0000" : colorToHex(run.color)
-                addZone(style: style, id: "zone-\(id)", coords: coords, colorHex: colorHex, opacity: 0.35)
+                addZone(mapView: mapView, id: "zone-\(id)", coords: coords, colorHex: colorHex, opacity: 0.35)
             }
 
             if routeCoordinates.count >= 2 {
-                addRoute(style: style, id: "my-route", coords: routeCoordinates)
+                addRoute(mapView: mapView, id: "my-route", coords: routeCoordinates)
             }
-
             if routeCoordinates.count >= 3 {
-                addZone(style: style, id: "my-zone", coords: routeCoordinates, colorHex: colorToHex(myColor), opacity: 0.6)
+                addZone(mapView: mapView, id: "my-zone", coords: routeCoordinates, colorHex: colorToHex(myColor), opacity: 0.6)
             }
         }
 
-        func addZone(style: MapboxMaps.Style, id: String, coords: [CLLocationCoordinate2D], colorHex: String, opacity: Double) {
+        func addZone(mapView: MapboxMaps.MapView, id: String, coords: [CLLocationCoordinate2D], colorHex: String, opacity: Double) {
             let buffered = makeBufferedPolygon(coords: coords, radius: 30)
-            let positions = buffered.map { LocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude) }
-            let polygon = Polygon([positions])
+            let polygon = Polygon([buffered.map { LocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude) }])
 
             var source = GeoJSONSource(id: id)
             source.data = .geometry(.polygon(polygon))
-            try? style.addSource(source)
+            try? mapView.mapboxMap.addSource(source)
             addedSourceIds.insert(id)
 
             var fillLayer = FillLayer(id: "\(id)-fill", source: id)
             fillLayer.fillColor = .constant(StyleColor(UIColor(hex: colorHex) ?? .orange))
             fillLayer.fillOpacity = .constant(opacity)
-            try? style.addLayer(fillLayer)
+            try? mapView.mapboxMap.addLayer(fillLayer)
             addedLayerIds.insert("\(id)-fill")
 
             var lineLayer = LineLayer(id: "\(id)-line", source: id)
             lineLayer.lineColor = .constant(StyleColor(UIColor(hex: colorHex) ?? .orange))
             lineLayer.lineWidth = .constant(2)
-            try? style.addLayer(lineLayer)
+            try? mapView.mapboxMap.addLayer(lineLayer)
             addedLayerIds.insert("\(id)-line")
         }
 
-        func addRoute(style: MapboxMaps.Style, id: String, coords: [CLLocationCoordinate2D]) {
-            let positions = coords.map { LocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude) }
-            let line = LineString(positions)
+        func addRoute(mapView: MapboxMaps.MapView, id: String, coords: [CLLocationCoordinate2D]) {
+            let line = LineString(coords.map { LocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude) })
 
             var source = GeoJSONSource(id: id)
             source.data = .geometry(.lineString(line))
-            try? style.addSource(source)
+            try? mapView.mapboxMap.addSource(source)
             addedSourceIds.insert(id)
 
             var lineLayer = LineLayer(id: "\(id)-layer", source: id)
@@ -106,7 +100,7 @@ struct RunMapView: UIViewRepresentable {
             lineLayer.lineWidth = .constant(3)
             lineLayer.lineCap = .constant(.round)
             lineLayer.lineJoin = .constant(.round)
-            try? style.addLayer(lineLayer)
+            try? mapView.mapboxMap.addLayer(lineLayer)
             addedLayerIds.insert("\(id)-layer")
         }
 
