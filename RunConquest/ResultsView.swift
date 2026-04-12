@@ -31,7 +31,7 @@ struct ResultsView: View {
                 Text("ПРОБЕЖКА ЗАВЕРШЕНА").font(.title2.bold())
                     .foregroundColor(colorMap[color] ?? .orange).tracking(2)
                     .scaleEffect(appeared ? 1 : 0.8).opacity(appeared ? 1 : 0)
-                Text(level).font(.system(size: 64))
+                Text(level).font(.system(size: 64)).foregroundColor(.white)
                     .scaleEffect(appeared ? 1 : 0.5).opacity(appeared ? 1 : 0)
                 Text(playerName).font(.title3.bold()).foregroundColor(.white).opacity(appeared ? 1 : 0)
                 VStack(spacing: 16) {
