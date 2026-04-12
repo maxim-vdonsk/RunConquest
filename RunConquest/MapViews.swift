@@ -14,8 +14,9 @@ struct RunMapView: UIViewRepresentable {
 
     func makeUIView(context: Context) -> MapboxMaps.MapView {
         MapboxOptions.accessToken = MAPBOX_TOKEN
+        let styleURI = StyleURI(rawValue: MAPBOX_STYLE) ?? StyleURI.dark
         let initOptions = MapInitOptions(
-            styleURI: StyleURI(rawValue: MAPBOX_STYLE)
+            styleURI: styleURI
         )
         let mapView = MapboxMaps.MapView(frame: .zero, mapInitOptions: initOptions)
         mapView.location.options.puckType = .puck2D(.makeDefault(showBearing: true))
