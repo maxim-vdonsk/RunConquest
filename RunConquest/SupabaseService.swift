@@ -30,7 +30,7 @@ class SupabaseService {
         for id in ids {
             guard let bodyData = try? JSONSerialization.data(withJSONObject: ["is_active": false]),
                   let request = makeRequest("/rest/v1/runs?id=eq.\(id)", method: "PATCH", body: bodyData) else { continue }
-            try? await URLSession.shared.data(for: request)
+            _ = try? await URLSession.shared.data(for: request)
         }
     }
 
@@ -63,12 +63,12 @@ class SupabaseService {
             ]
             guard let bodyData = try? JSONSerialization.data(withJSONObject: updated),
                   let request = makeRequest("/rest/v1/players?name=eq.\(encoded)", method: "PATCH", body: bodyData) else { return }
-            try? await URLSession.shared.data(for: request)
+            _ = try? await URLSession.shared.data(for: request)
         } else {
             let body: [String: Any] = ["name": name, "total_distance": distance, "total_area": area, "total_attacks": attacks, "total_runs": 1]
             guard let bodyData = try? JSONSerialization.data(withJSONObject: body),
                   let request = makeRequest("/rest/v1/players", method: "POST", body: bodyData) else { return }
-            try? await URLSession.shared.data(for: request)
+            _ = try? await URLSession.shared.data(for: request)
         }
     }
 
