@@ -1,17 +1,19 @@
 import CoreLocation
 import MapKit
+import Observation
 
 // MARK: - Location Manager
 
+@Observable
 @MainActor
-class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
+class LocationManager: NSObject, CLLocationManagerDelegate {
     private let manager = CLLocationManager()
-    @Published var region = MKCoordinateRegion(center: CLLocationCoordinate2D(latitude: 37.7749, longitude: -122.4194), span: MKCoordinateSpan(latitudeDelta: 0.008, longitudeDelta: 0.008))
-    @Published var routeCoordinates: [CLLocationCoordinate2D] = []
-    @Published var isTracking = false
-    @Published var distanceMeters: Double = 0
-    @Published var conqueredArea: Double = 0
-    @Published var currentSpeed: Double = 0
+    var region = MKCoordinateRegion(center: CLLocationCoordinate2D(latitude: 37.7749, longitude: -122.4194), span: MKCoordinateSpan(latitudeDelta: 0.008, longitudeDelta: 0.008))
+    var routeCoordinates: [CLLocationCoordinate2D] = []
+    var isTracking = false
+    var distanceMeters: Double = 0
+    var conqueredArea: Double = 0
+    var currentSpeed: Double = 0
     private var lastLocation: CLLocation?
 
     override init() {

@@ -1,29 +1,29 @@
 import Foundation
+import Observation
 
 // MARK: - Realtime Manager
 
+@Observable
 @MainActor
-class RealtimeManager: ObservableObject {
-    @Published var otherRuns: [RunRecord] = []
+class RealtimeManager {
+    var otherRuns: [RunRecord] = []
     private var webSocketTask: URLSessionWebSocketTask?
     private var pingTimer: Timer?
 
     func connect() {
         Task {
             let existing = await SupabaseService.shared.fetchRuns()
-            await MainActor.run { self.otherRuns = existing }
+            otherRuns = existing
             guard let url = URL(string: "wss://ryldhypslpxjwjxmbjpt.supabase.co/realtime/v1/websocket?apikey=\(SUPABASE_KEY)&vsn=1.0.0") else { return }
-            self.webSocketTask = URLSession(configuration: .default).webSocketTask(with: url)
-            self.webSocketTask?.resume()
-            try? await self.webSocketTask?.send(.string("""
+            webSocketTask = URLSession(configuration: .default).webSocketTask(with: url)
+            webSocketTask?.resume()
+            try? await webSocketTask?.send(.string("""
             {"topic":"realtime:public:runs","event":"phx_join","payload":{"config":{"broadcast":{"self":true},"presence":{"key":""},"postgres_changes":[{"event":"*","schema":"public","table":"runs"}]}},"ref":"1"}
             """))
-            await MainActor.run {
-                self.pingTimer = Timer.scheduledTimer(withTimeInterval: 20, repeats: true) { _ in
-                    self.webSocketTask?.send(.string("""
-                    {"topic":"realtime:public:runs","event":"heartbeat","payload":{},"ref":"ping"}
-                    """)) { _ in }
-                }
+            pingTimer = Timer.scheduledTimer(withTimeInterval: 20, repeats: true) { [weak self] _ in
+                self?.webSocketTask?.send(.string("""
+                {"topic":"realtime:public:runs","event":"heartbeat","payload":{},"ref":"ping"}
+                """)) { _ in }
             }
             await listenForMessages()
         }
@@ -46,7 +46,7 @@ class RealtimeManager: ObservableObject {
            let record = dataObj["record"] as? [String: Any],
            let id = record["id"] as? String,
            let isActive = record["is_active"] as? Bool, !isActive {
-            await MainActor.run { self.otherRuns.removeAll { $0.id == id } }
+            otherRuns.removeAll { $0.id == id }
             return
         }
         if dataObj["type"] as? String == "INSERT",
@@ -55,9 +55,7 @@ class RealtimeManager: ObservableObject {
            let coords = record["coordinates"] as? String,
            let color = record["color"] as? String {
             let run = RunRecord(id: record["id"] as? String, player_name: name, coordinates: coords, color: color, created_at: record["created_at"] as? String, is_active: true)
-            await MainActor.run {
-                if !self.otherRuns.contains(where: { $0.id == run.id }) { self.otherRuns.insert(run, at: 0) }
-            }
+            if !otherRuns.contains(where: { $0.id == run.id }) { otherRuns.insert(run, at: 0) }
         }
     }
 

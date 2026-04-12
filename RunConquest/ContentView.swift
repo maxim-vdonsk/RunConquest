@@ -19,8 +19,8 @@ struct AnimatedHUDStat: View {
 // MARK: - Main View
 
 struct ContentView: View {
-    @StateObject private var locationManager = LocationManager()
-    @StateObject private var realtimeManager = RealtimeManager()
+    @State private var locationManager = LocationManager()
+    @State private var realtimeManager = RealtimeManager()
 
     @AppStorage("playerName") private var savedName: String = ""
     @AppStorage("playerColor") private var savedColor: String = "orange"
