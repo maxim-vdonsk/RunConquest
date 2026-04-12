@@ -21,19 +21,30 @@ struct RunMapView: UIViewRepresentable {
         mapView.location.options.puckType = .puck2D(.makeDefault(showBearing: true))
         mapView.location.options.puckBearingEnabled = true
         context.coordinator.mapView = mapView
+
+        // Ждём загрузки стиля перед добавлением слоёв
+        mapView.mapboxMap.onStyleLoaded.observeNext { [weak mapView] _ in
+            guard let mapView else { return }
+            context.coordinator.isStyleLoaded = true
+            context.coordinator.applyPendingUpdate(mapView: mapView)
+        }.store(in: &context.coordinator.cancelables)
+
         return mapView
     }
 
     func updateUIView(_ mapView: MapboxMaps.MapView, context: Context) {
         let camera = CameraOptions(center: region.center, zoom: 15.5)
         mapView.camera.ease(to: camera, duration: 0.5)
-        context.coordinator.updateOverlays(
-            mapView: mapView,
-            routeCoordinates: routeCoordinates,
-            otherRuns: otherRuns,
-            myColor: myColor,
-            attackedIds: attackedIds
-        )
+
+        // Сохраняем последние данные и применяем только если стиль уже загружен
+        context.coordinator.pendingRouteCoordinates = routeCoordinates
+        context.coordinator.pendingOtherRuns = otherRuns
+        context.coordinator.pendingMyColor = myColor
+        context.coordinator.pendingAttackedIds = attackedIds
+
+        if context.coordinator.isStyleLoaded {
+            context.coordinator.applyPendingUpdate(mapView: mapView)
+        }
     }
 
     func makeCoordinator() -> Coordinator { Coordinator() }
@@ -42,6 +53,18 @@ struct RunMapView: UIViewRepresentable {
         var mapView: MapboxMaps.MapView?
         var addedSourceIds: Set<String> = []
         var addedLayerIds: Set<String> = []
+        var isStyleLoaded = false
+        var cancelables = Set<AnyCancelable>()
+
+        // Последние данны��, ожидающие отрисовки
+        var pendingRouteCoordinates: [CLLocationCoordinate2D] = []
+        var pendingOtherRuns: [RunRecord] = []
+        var pendingMyColor: String = "orange"
+        var pendingAttackedIds: Set<String> = []
+
+        func applyPendingUpdate(mapView: MapboxMaps.MapView) {
+            updateOverlays(mapView: mapView, routeCoordinates: pendingRouteCoordinates, otherRuns: pendingOtherRuns, myColor: pendingMyColor, attackedIds: pendingAttackedIds)
+        }
 
         func updateOverlays(mapView: MapboxMaps.MapView, routeCoordinates: [CLLocationCoordinate2D], otherRuns: [RunRecord], myColor: String, attackedIds: Set<String>) {
             for layerId in addedLayerIds { try? mapView.mapboxMap.removeLayer(withId: layerId) }
