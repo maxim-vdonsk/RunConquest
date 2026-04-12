@@ -1,8 +1,9 @@
 import SwiftUI
 import MapKit
 import CoreLocation
+import MapboxMaps
 
-// MARK: - Dark Map View
+// MARK: - Mapbox Map View
 
 struct RunMapView: UIViewRepresentable {
     @Binding var region: MKCoordinateRegion
@@ -11,110 +12,143 @@ struct RunMapView: UIViewRepresentable {
     var myColor: String
     var attackedIds: Set<String>
 
-    func makeUIView(context: Context) -> MKMapView {
-        let mapView = MKMapView()
-        mapView.delegate = context.coordinator
-        mapView.showsUserLocation = true
-        mapView.setRegion(region, animated: false)
-        mapView.overrideUserInterfaceStyle = .dark
+    func makeUIView(context: Context) -> MapboxMaps.MapView {
+        let initOptions = MapInitOptions(
+            styleURI: StyleURI(rawValue: MAPBOX_STYLE)
+        )
+        let mapView = MapboxMaps.MapView(frame: .zero, mapInitOptions: initOptions)
+        mapView.mapboxMap.mapboxToken = MAPBOX_TOKEN
+        mapView.location.options.puckType = .puck2D(.makeDefault(showBearing: true))
+        mapView.location.options.puckBearingEnabled = true
+        context.coordinator.mapView = mapView
         return mapView
     }
 
-    func updateUIView(_ mapView: MKMapView, context: Context) {
-        mapView.setRegion(region, animated: true)
-        mapView.removeOverlays(mapView.overlays)
-        mapView.removeAnnotations(mapView.annotations)
-        for run in otherRuns {
-            guard let coords = parseCoordinates(run.coordinates), coords.count >= 3 else { continue }
-            let isAttacked = attackedIds.contains(run.id ?? "")
-            let buffered = makeBufferedPolygon(coords: coords, radius: 30)
-            mapView.addOverlay(ColoredPolygon(coordinates: buffered, count: buffered.count, color: isAttacked ? "attacked" : run.color, playerName: run.player_name), level: .aboveRoads)
-            if let center = coords.first {
-                mapView.addAnnotation(PlayerAnnotation(coordinate: center, title: run.player_name, isAttacked: isAttacked))
-            }
-        }
-        if routeCoordinates.count >= 2 {
-            mapView.addOverlay(MKPolyline(coordinates: routeCoordinates, count: routeCoordinates.count))
-        }
-        if routeCoordinates.count >= 3 {
-            let buffered = makeBufferedPolygon(coords: routeCoordinates, radius: 30)
-            mapView.addOverlay(ColoredPolygon(coordinates: buffered, count: buffered.count, color: myColor, playerName: "me"), level: .aboveRoads)
-        }
-    }
+    func updateUIView(_ mapView: MapboxMaps.MapView, context: Context) {
+        let camera = CameraOptions(center: region.center, zoom: 15.5)
+        mapView.camera.ease(to: camera, duration: 0.5)
 
-    func makeBufferedPolygon(coords: [CLLocationCoordinate2D], radius: Double) -> [CLLocationCoordinate2D] {
-        var result: [CLLocationCoordinate2D] = []
-        for coord in coords {
-            for i in 0..<12 {
-                let angle = Double(i) * (2 * .pi / 12)
-                result.append(CLLocationCoordinate2D(
-                    latitude: coord.latitude + (radius / 111320) * cos(angle),
-                    longitude: coord.longitude + (radius / (111320 * cos(coord.latitude * .pi / 180))) * sin(angle)
-                ))
-            }
-        }
-        return result
+        context.coordinator.updateOverlays(
+            mapView: mapView,
+            routeCoordinates: routeCoordinates,
+            otherRuns: otherRuns,
+            myColor: myColor,
+            attackedIds: attackedIds
+        )
     }
 
     func makeCoordinator() -> Coordinator { Coordinator() }
 
-    class Coordinator: NSObject, MKMapViewDelegate {
-        func mapView(_ mapView: MKMapView, rendererFor overlay: MKOverlay) -> MKOverlayRenderer {
-            if let polygon = overlay as? ColoredPolygon {
-                let r = MKPolygonRenderer(polygon: polygon)
-                let c = colorFromString(polygon.color)
-                r.fillColor = c.withAlphaComponent(polygon.playerName == "me" ? 0.6 : 0.35)
-                r.strokeColor = c.withAlphaComponent(0.9)
-                r.lineWidth = polygon.color == "attacked" ? 3 : 2
-                return r
+    class Coordinator: NSObject {
+        var mapView: MapboxMaps.MapView?
+        var addedSourceIds: Set<String> = []
+        var addedLayerIds: Set<String> = []
+
+        func updateOverlays(mapView: MapboxMaps.MapView, routeCoordinates: [CLLocationCoordinate2D], otherRuns: [RunRecord], myColor: String, attackedIds: Set<String>) {
+            let style = mapView.mapboxMap.style
+
+            for layerId in addedLayerIds { try? style.removeLayer(withId: layerId) }
+            for sourceId in addedSourceIds { try? style.removeSource(withId: sourceId) }
+            addedLayerIds.removeAll()
+            addedSourceIds.removeAll()
+
+            for run in otherRuns {
+                guard let coords = parseCoordinates(run.coordinates), coords.count >= 3 else { continue }
+                let id = run.id ?? UUID().uuidString
+                let isAttacked = attackedIds.contains(run.id ?? "")
+                let colorHex = isAttacked ? "#ff0000" : colorToHex(run.color)
+                addZone(style: style, id: "zone-\(id)", coords: coords, colorHex: colorHex, opacity: 0.35)
             }
-            if let polyline = overlay as? MKPolyline {
-                let r = MKPolylineRenderer(polyline: polyline)
-                r.strokeColor = UIColor.white.withAlphaComponent(0.9)
-                r.lineWidth = 3; return r
+
+            if routeCoordinates.count >= 2 {
+                addRoute(style: style, id: "my-route", coords: routeCoordinates)
             }
-            return MKOverlayRenderer(overlay: overlay)
+
+            if routeCoordinates.count >= 3 {
+                addZone(style: style, id: "my-zone", coords: routeCoordinates, colorHex: colorToHex(myColor), opacity: 0.6)
+            }
         }
 
-        func mapView(_ mapView: MKMapView, viewFor annotation: MKAnnotation) -> MKAnnotationView? {
-            guard let a = annotation as? PlayerAnnotation else { return nil }
-            let view = MKMarkerAnnotationView(annotation: annotation, reuseIdentifier: "player")
-            view.glyphText = a.isAttacked ? "⚔️" : "🏃"
-            view.markerTintColor = a.isAttacked ? .red : .systemOrange
-            view.titleVisibility = .visible
-            return view
+        func addZone(style: MapboxMaps.Style, id: String, coords: [CLLocationCoordinate2D], colorHex: String, opacity: Double) {
+            let buffered = makeBufferedPolygon(coords: coords, radius: 30)
+            let positions = buffered.map { LocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude) }
+            let polygon = Polygon([positions])
+
+            var source = GeoJSONSource(id: id)
+            source.data = .geometry(.polygon(polygon))
+            try? style.addSource(source)
+            addedSourceIds.insert(id)
+
+            var fillLayer = FillLayer(id: "\(id)-fill", source: id)
+            fillLayer.fillColor = .constant(StyleColor(UIColor(hex: colorHex) ?? .orange))
+            fillLayer.fillOpacity = .constant(opacity)
+            try? style.addLayer(fillLayer)
+            addedLayerIds.insert("\(id)-fill")
+
+            var lineLayer = LineLayer(id: "\(id)-line", source: id)
+            lineLayer.lineColor = .constant(StyleColor(UIColor(hex: colorHex) ?? .orange))
+            lineLayer.lineWidth = .constant(2)
+            try? style.addLayer(lineLayer)
+            addedLayerIds.insert("\(id)-line")
         }
 
-        func colorFromString(_ color: String) -> UIColor {
+        func addRoute(style: MapboxMaps.Style, id: String, coords: [CLLocationCoordinate2D]) {
+            let positions = coords.map { LocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude) }
+            let line = LineString(positions)
+
+            var source = GeoJSONSource(id: id)
+            source.data = .geometry(.lineString(line))
+            try? style.addSource(source)
+            addedSourceIds.insert(id)
+
+            var lineLayer = LineLayer(id: "\(id)-layer", source: id)
+            lineLayer.lineColor = .constant(StyleColor(.white))
+            lineLayer.lineWidth = .constant(3)
+            lineLayer.lineCap = .constant(.round)
+            lineLayer.lineJoin = .constant(.round)
+            try? style.addLayer(lineLayer)
+            addedLayerIds.insert("\(id)-layer")
+        }
+
+        func makeBufferedPolygon(coords: [CLLocationCoordinate2D], radius: Double) -> [CLLocationCoordinate2D] {
+            var result: [CLLocationCoordinate2D] = []
+            for coord in coords {
+                for i in 0..<12 {
+                    let angle = Double(i) * (2 * .pi / 12)
+                    result.append(CLLocationCoordinate2D(
+                        latitude: coord.latitude + (radius / 111320) * cos(angle),
+                        longitude: coord.longitude + (radius / (111320 * cos(coord.latitude * .pi / 180))) * sin(angle)
+                    ))
+                }
+            }
+            return result
+        }
+
+        func colorToHex(_ color: String) -> String {
             switch color {
-            case "orange": return .orange
-            case "blue": return .systemBlue
-            case "green": return .systemGreen
-            case "red": return .systemRed
-            case "purple": return .systemPurple
-            case "attacked": return .red
-            default: return .orange
+            case "orange": return "#FF8C00"
+            case "blue":   return "#0080FF"
+            case "green":  return "#00CC44"
+            case "red":    return "#FF2200"
+            case "purple": return "#9933FF"
+            default:       return "#FF8C00"
             }
         }
     }
 }
 
-// MARK: - Map Helpers
+// MARK: - UIColor from HEX
 
-class ColoredPolygon: MKPolygon {
-    var color: String = "orange"
-    var playerName: String = ""
-    convenience init(coordinates: [CLLocationCoordinate2D], count: Int, color: String, playerName: String) {
-        var c = coordinates; self.init(coordinates: &c, count: count)
-        self.color = color; self.playerName = playerName
-    }
-}
-
-class PlayerAnnotation: NSObject, MKAnnotation {
-    let coordinate: CLLocationCoordinate2D
-    let title: String?
-    let isAttacked: Bool
-    init(coordinate: CLLocationCoordinate2D, title: String, isAttacked: Bool) {
-        self.coordinate = coordinate; self.title = title; self.isAttacked = isAttacked
+extension UIColor {
+    convenience init?(hex: String) {
+        let start = hex.hasPrefix("#") ? hex.index(hex.startIndex, offsetBy: 1) : hex.startIndex
+        let hexColor = String(hex[start...])
+        guard hexColor.count == 6, let hexNumber = UInt64(hexColor, radix: 16) else { return nil }
+        self.init(
+            red:   CGFloat((hexNumber & 0xff0000) >> 16) / 255,
+            green: CGFloat((hexNumber & 0x00ff00) >> 8)  / 255,
+            blue:  CGFloat( hexNumber & 0x0000ff)         / 255,
+            alpha: 1
+        )
     }
 }
