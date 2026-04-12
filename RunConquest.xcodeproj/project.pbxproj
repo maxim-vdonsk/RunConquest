@@ -256,6 +256,8 @@
 				DEVELOPMENT_TEAM = 98MVBRPSSW;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "Нужно для отслеживания маршрута в фоне";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Нужно для отслеживания маршрута во время пробежки";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -288,6 +290,8 @@
 				DEVELOPMENT_TEAM = 98MVBRPSSW;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "Нужно для отслеживания маршрута в фоне";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Нужно для отслеживания маршрута во время пробежки";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
