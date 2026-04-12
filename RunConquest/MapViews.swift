@@ -139,6 +139,8 @@ struct RunMapView: UIViewRepresentable {
                     ))
                 }
             }
+            // GeoJSON требует замкнутое кольцо: первая и последняя точки должны совпадать
+            if let first = result.first { result.append(first) }
             return result
         }
 
