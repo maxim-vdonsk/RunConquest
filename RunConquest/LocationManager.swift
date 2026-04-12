@@ -3,6 +3,7 @@ import MapKit
 
 // MARK: - Location Manager
 
+@MainActor
 class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
     private let manager = CLLocationManager()
     @Published var region = MKCoordinateRegion(center: CLLocationCoordinate2D(latitude: 37.7749, longitude: -122.4194), span: MKCoordinateSpan(latitudeDelta: 0.008, longitudeDelta: 0.008))
@@ -28,9 +29,9 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
 
     func stopTracking() { isTracking = false; currentSpeed = 0 }
 
-    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+    nonisolated func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         guard let location = locations.last else { return }
-        DispatchQueue.main.async {
+        Task { @MainActor in
             self.region = MKCoordinateRegion(center: location.coordinate, span: MKCoordinateSpan(latitudeDelta: 0.005, longitudeDelta: 0.005))
             guard self.isTracking else { return }
             self.routeCoordinates.append(location.coordinate)

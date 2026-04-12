@@ -2,6 +2,7 @@ import Foundation
 
 // MARK: - Realtime Manager
 
+@MainActor
 class RealtimeManager: ObservableObject {
     @Published var otherRuns: [RunRecord] = []
     private var webSocketTask: URLSessionWebSocketTask?
