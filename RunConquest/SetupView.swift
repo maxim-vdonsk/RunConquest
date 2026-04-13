@@ -15,8 +15,28 @@ struct SetupView: View {
 
     @State private var appeared = false
     @State private var cursor = true
+    @State private var nameError: String? = nil
 
     var accent: Color { Neon.colorMap[selectedColor] ?? Neon.cyan }
+
+    var isValidName: Bool {
+        let t = playerName.trimmingCharacters(in: .whitespaces)
+        guard t.count >= 3 && t.count <= 20 else { return false }
+        let allowed = CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "_- "))
+        return t.unicodeScalars.allSatisfy { allowed.contains($0) }
+    }
+
+    var nameErrorText: String? {
+        let t = playerName.trimmingCharacters(in: .whitespaces)
+        if t.isEmpty { return nil }
+        if t.count < 3 { return lang.t("Min 3 characters", "Минимум 3 символа") }
+        if t.count > 20 { return lang.t("Max 20 characters", "Максимум 20 символов") }
+        let allowed = CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "_- "))
+        if !t.unicodeScalars.allSatisfy({ allowed.contains($0) }) {
+            return lang.t("Only letters, numbers, _ and -", "Только буквы, цифры, _ и -")
+        }
+        return nil
+    }
 
     var body: some View {
         ZStack {
@@ -56,9 +76,16 @@ struct SetupView: View {
                     .cornerRadius(4)
                     .overlay(
                         RoundedRectangle(cornerRadius: 4)
-                            .stroke(accent.opacity(playerName.isEmpty ? 0.4 : 0.9), lineWidth: 1)
+                            .stroke(nameErrorText != nil ? Neon.red.opacity(0.8) : accent.opacity(playerName.isEmpty ? 0.4 : 0.9), lineWidth: 1)
                             .shadow(color: accent.opacity(0.5), radius: 6)
                     )
+
+                if let err = nameErrorText {
+                    Text(err)
+                        .font(.system(size: 9, design: .monospaced))
+                        .foregroundColor(Neon.red.opacity(0.8))
+                        .tracking(1)
+                }
                 }
                 .padding(.horizontal)
                 .offset(y: appeared ? 0 : 20).opacity(appeared ? 1 : 0)
@@ -94,20 +121,21 @@ struct SetupView: View {
 
                 // Deploy button
                 Button(action: onStart) {
-                    Text(playerName.isEmpty
+                    let canDeploy = isValidName
+                    Text(!canDeploy
                          ? lang.t("[ ENTER CALLSIGN ]", "[ ВВЕДИ ПОЗЫВНОЙ ]")
                          : lang.t("[ DEPLOY  ▶ ]", "[ НАЧАТЬ  ▶ ]"))
                         .font(.system(size: 15, weight: .bold, design: .monospaced))
-                        .foregroundColor(playerName.isEmpty ? .gray : Neon.bg)
+                        .foregroundColor(!canDeploy ? .gray : Neon.bg)
                         .tracking(2)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 16)
-                        .background(playerName.isEmpty ? Color.gray.opacity(0.12) : accent)
+                        .background(!canDeploy ? Color.gray.opacity(0.12) : accent)
                         .cornerRadius(4)
-                        .shadow(color: playerName.isEmpty ? .clear : accent.opacity(0.7), radius: 14)
+                        .shadow(color: !canDeploy ? .clear : accent.opacity(0.7), radius: 14)
                         .padding(.horizontal)
                 }
-                .disabled(playerName.isEmpty)
+                .disabled(!isValidName)
                 .offset(y: appeared ? 0 : 20).opacity(appeared ? 1 : 0)
             }
         }

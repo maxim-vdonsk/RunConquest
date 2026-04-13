@@ -1,10 +1,40 @@
 import Foundation
 import CoreLocation
+import Security
 
 // MARK: - Supabase Service
 
 class SupabaseService {
     static let shared = SupabaseService()
+
+    // MARK: - Security Helpers
+
+    /// Strips PostgREST special characters from user-controlled strings used in query params.
+    /// Removes: ( ) , " ' ; \ and trims whitespace.
+    private func sanitize(_ input: String) -> String {
+        let forbidden = CharacterSet(charactersIn: "(),'\";\\\n\r\t")
+        return input
+            .components(separatedBy: forbidden)
+            .joined()
+            .trimmingCharacters(in: .whitespaces)
+    }
+
+    /// Strips wildcard characters from ilike search queries.
+    private func sanitizeSearch(_ input: String) -> String {
+        let forbidden = CharacterSet(charactersIn: "(),'\";\\\n\r\t*%")
+        return input
+            .components(separatedBy: forbidden)
+            .joined()
+            .trimmingCharacters(in: .whitespaces)
+    }
+
+    /// Cryptographically secure random invite code.
+    private func secureRandomCode(length: Int = 8) -> String {
+        let chars = Array("ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
+        var bytes = [UInt8](repeating: 0, count: length)
+        SecRandomCopyBytes(kSecRandomDefault, length, &bytes)
+        return String(bytes.map { chars[Int($0) % chars.count] })
+    }
 
     private func makeRequest(_ path: String, method: String = "GET", body: Data? = nil) -> URLRequest? {
         guard let url = URL(string: SUPABASE_URL + path) else { return nil }
@@ -25,22 +55,30 @@ class SupabaseService {
     func saveRun(playerName: String, coordinates: [CLLocationCoordinate2D], color: String,
                  totalTime: Int = 0, avgPace: Int = 0, avgHR: Int = 0, maxHR: Int = 0,
                  calories: Int = 0, points: Int = 0, city: String = "") async -> String? {
+        // Numeric sanity checks
+        let safeTime     = max(0, min(totalTime, 86_400))   // max 24h
+        let safePace     = max(0, min(avgPace,   3_600))    // max 1h/km
+        let safeAvgHR    = max(0, min(avgHR,     250))
+        let safeMaxHR    = max(0, min(maxHR,     250))
+        let safeCalories = max(0, min(calories,  10_000))
+        let safePoints   = max(0, min(points,    1_000_000))
+
         let coords = coordinates.map { Coordinate(lat: $0.latitude, lon: $0.longitude) }
         guard let coordData = try? JSONEncoder().encode(coords),
               let coordString = String(data: coordData, encoding: .utf8) else { return nil }
         var body: [String: Any] = [
-            "player_name": playerName,
+            "player_name": sanitize(playerName),
             "coordinates": coordString,
             "color": color,
             "is_active": true,
-            "points": points
+            "points": safePoints
         ]
-        if totalTime > 0 { body["total_time_seconds"] = totalTime }
-        if avgPace > 0   { body["avg_pace_seconds"] = avgPace }
-        if avgHR > 0     { body["avg_heart_rate"] = avgHR }
-        if maxHR > 0     { body["max_heart_rate"] = maxHR }
-        if calories > 0  { body["calories"] = calories }
-        if !city.isEmpty { body["city"] = city }
+        if safeTime > 0     { body["total_time_seconds"] = safeTime }
+        if safePace > 0     { body["avg_pace_seconds"] = safePace }
+        if safeAvgHR > 0    { body["avg_heart_rate"] = safeAvgHR }
+        if safeMaxHR > 0    { body["max_heart_rate"] = safeMaxHR }
+        if safeCalories > 0 { body["calories"] = safeCalories }
+        if !city.isEmpty    { body["city"] = sanitize(city) }
 
         guard let bodyData = try? JSONSerialization.data(withJSONObject: body),
               let request = makeRequest("/rest/v1/runs", method: "POST", body: bodyData) else { return nil }
@@ -66,7 +104,7 @@ class SupabaseService {
     }
 
     func fetchMyRuns(playerName: String) async -> [RunRecord] {
-        let encoded = playerName.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? playerName
+        let encoded = sanitize(playerName).addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? playerName
         guard let request = makeRequest("/rest/v1/runs?player_name=eq.\(encoded)&order=created_at.desc&limit=30") else { return [] }
         guard let (data, _) = try? await URLSession.shared.data(for: request),
               let records = try? JSONDecoder().decode([RunRecord].self, from: data) else { return [] }
@@ -102,7 +140,7 @@ class SupabaseService {
 
     func upsertPlayer(name: String, distance: Double, area: Double, attacks: Int,
                       points: Int = 0, city: String = "") async {
-        let encoded = name.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? name
+        let encoded = sanitize(name).addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? name
         guard let fetchRequest = makeRequest("/rest/v1/players?name=eq.\(encoded)") else { return }
         if let (data, _) = try? await URLSession.shared.data(for: fetchRequest),
            let existing = try? JSONDecoder().decode([PlayerRecord].self, from: data),
@@ -146,7 +184,8 @@ class SupabaseService {
     }
 
     func searchPlayers(query: String) async -> [PlayerRecord] {
-        let encoded = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? query
+        let encoded = sanitizeSearch(query).addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? query
+        guard !encoded.isEmpty else { return [] }
         guard let request = makeRequest("/rest/v1/players?name=ilike.*\(encoded)*&limit=20") else { return [] }
         guard let (data, _) = try? await URLSession.shared.data(for: request),
               let records = try? JSONDecoder().decode([PlayerRecord].self, from: data) else { return [] }
@@ -300,7 +339,7 @@ class SupabaseService {
     }
 
     func createSquad(name: String, ownerName: String, color: String) async -> Squad? {
-        let code = String((0..<6).map { _ in "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789".randomElement()! })
+        let code = secureRandomCode(length: 8)
         let body: [String: Any] = ["name": name, "invite_code": code, "owner_name": ownerName, "color": color]
         guard let bodyData = try? JSONSerialization.data(withJSONObject: body),
               let request = makeRequest("/rest/v1/squads", method: "POST", body: bodyData) else { return nil }

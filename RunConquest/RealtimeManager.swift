@@ -14,7 +14,10 @@ class RealtimeManager {
         Task {
             let existing = await SupabaseService.shared.fetchRuns()
             otherRuns = existing
-            guard let url = URL(string: "wss://ryldhypslpxjwjxmbjpt.supabase.co/realtime/v1/websocket?apikey=\(SUPABASE_KEY)&vsn=1.0.0") else { return }
+            let wsBase = SUPABASE_URL
+                .replacingOccurrences(of: "https://", with: "wss://")
+                .replacingOccurrences(of: "http://",  with: "ws://")
+            guard let url = URL(string: "\(wsBase)/realtime/v1/websocket?apikey=\(SUPABASE_KEY)&vsn=1.0.0") else { return }
             webSocketTask = URLSession(configuration: .default).webSocketTask(with: url)
             webSocketTask?.resume()
             try? await webSocketTask?.send(.string("""
@@ -55,7 +58,11 @@ class RealtimeManager {
            let record = dataObj["record"] as? [String: Any],
            let name = record["player_name"] as? String,
            let coords = record["coordinates"] as? String,
-           let color = record["color"] as? String {
+           let color = record["color"] as? String,
+           // Validate incoming data ranges
+           name.count <= 50,
+           coords.count <= 500_000,
+           ["orange","blue","green","red","purple","cyan","magenta"].contains(color) {
             let run = RunRecord(id: record["id"] as? String, player_name: name, coordinates: coords, color: color, created_at: record["created_at"] as? String, is_active: true)
             if !otherRuns.contains(where: { $0.id == run.id }) { otherRuns.insert(run, at: 0) }
         }
