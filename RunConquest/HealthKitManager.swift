@@ -111,9 +111,11 @@ class HealthKitManager {
     }
 
     private func queryLatestHeartRate() {
+        guard let start = workoutStartDate else { return }
         let type = HKQuantityType(.heartRate)
+        let predicate = HKQuery.predicateForSamples(withStart: start, end: Date())
         let sort = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: false)
-        let query = HKSampleQuery(sampleType: type, predicate: nil, limit: 1, sortDescriptors: [sort]) { [weak self] _, samples, _ in
+        let query = HKSampleQuery(sampleType: type, predicate: predicate, limit: 1, sortDescriptors: [sort]) { [weak self] _, samples, _ in
             guard let sample = samples?.first as? HKQuantitySample else { return }
             let bpm = Int(sample.quantity.doubleValue(for: HKUnit(from: "count/min")))
             Task { @MainActor [weak self] in self?.heartRate = bpm }

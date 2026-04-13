@@ -51,9 +51,8 @@ struct ContentView: View {
     var accent: Color { Neon.colorMap[savedColor] ?? Neon.cyan }
 
     var points: Int {
-        Int(locationManager.distanceMeters / 10)
-        + Int(locationManager.conqueredArea / 100)
-        + attackedCount * 50
+        let areaPoints = locationManager.distanceMeters >= 50 ? Int(locationManager.conqueredArea / 100) : 0
+        return Int(locationManager.distanceMeters / 10) + areaPoints + attackedCount * 50
     }
 
     var heartRateColor: Color {
