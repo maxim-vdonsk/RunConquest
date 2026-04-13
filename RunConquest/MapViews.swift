@@ -19,25 +19,31 @@ struct RunMapView: UIViewRepresentable {
             styleURI: styleURI
         )
         let mapView = MapboxMaps.MapView(frame: .zero, mapInitOptions: initOptions)
-        let arrowImage = UIGraphicsImageRenderer(size: CGSize(width: 28, height: 28)).image { ctx in
-            let color = UIColor.cyan
-            let path = UIBezierPath()
-            path.move(to: CGPoint(x: 14, y: 2))
-            path.addLine(to: CGPoint(x: 24, y: 26))
-            path.addLine(to: CGPoint(x: 14, y: 21))
-            path.addLine(to: CGPoint(x: 4, y: 26))
-            path.close()
-            color.withAlphaComponent(0.95).setFill()
-            path.fill()
-            UIColor.white.withAlphaComponent(0.4).setStroke()
-            path.lineWidth = 1
-            path.stroke()
+        let dotImage = UIGraphicsImageRenderer(size: CGSize(width: 20, height: 20)).image { _ in
+            let rect = CGRect(x: 2, y: 2, width: 16, height: 16)
+            UIColor.cyan.setFill()
+            UIBezierPath(ovalIn: rect).fill()
+            UIColor.white.setStroke()
+            let stroke = UIBezierPath(ovalIn: rect)
+            stroke.lineWidth = 2
+            stroke.stroke()
         }
-        var puck = Puck2DConfiguration()
-        puck.topImage = arrowImage
-        puck.bearingImage = arrowImage
-        puck.shadowImage = nil
-        puck.showsAccuracyRing = false
+        let bearingImage = UIGraphicsImageRenderer(size: CGSize(width: 20, height: 20)).image { _ in
+            let path = UIBezierPath()
+            path.move(to: CGPoint(x: 10, y: 0))
+            path.addLine(to: CGPoint(x: 18, y: 20))
+            path.addLine(to: CGPoint(x: 10, y: 15))
+            path.addLine(to: CGPoint(x: 2, y: 20))
+            path.close()
+            UIColor.cyan.setFill()
+            path.fill()
+        }
+        let puck = Puck2DConfiguration(
+            topImage: dotImage,
+            bearingImage: bearingImage,
+            shadowImage: nil,
+            showsAccuracyRing: false
+        )
         mapView.location.options.puckType = .puck2D(puck)
         mapView.location.options.puckBearingEnabled = true
         context.coordinator.mapView = mapView
