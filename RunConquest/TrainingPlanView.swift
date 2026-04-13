@@ -123,7 +123,7 @@ struct PlanLibrary {
             let s3 = TrainingSession(id: w*10+3, dayOfWeek: 5, type: .rest,
                 distanceKm: 0, durationMin: 0,
                 descEN: "Active recovery or rest", descRU: "Активное восстановление или отдых")
-            let s4type: SessionType = w < 4 ? .easy : .long
+            let s4type: TrainingSession.SessionType = w < 4 ? .easy : .long
             let s4 = TrainingSession(id: w*10+4, dayOfWeek: 6, type: s4type,
                 distanceKm: Double(w) * 0.4 + 3.0, durationMin: w*4+20,
                 descEN: "Weekend long run", descRU: "Длинный бег на выходных")
@@ -187,7 +187,7 @@ struct PlanLibrary {
             let s1 = TrainingSession(id: w*10+1, dayOfWeek: 1, type: .easy,
                 distanceKm: Double(w) * 0.5 + 8.0, durationMin: w*3+45,
                 descEN: "Easy recovery run", descRU: "Лёгкий восстановительный бег")
-            let s2type: SessionType = w < 8 ? .easy : .interval
+            let s2type: TrainingSession.SessionType = w < 8 ? .easy : .interval
             let s2descEN = w < 8 ? "Easy aerobic" : "Marathon-pace intervals"
             let s2descRU = w < 8 ? "Лёгкий аэробный" : "Интервалы в марафонском темпе"
             let s2 = TrainingSession(id: w*10+2, dayOfWeek: 2, type: s2type,
