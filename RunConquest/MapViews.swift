@@ -19,7 +19,9 @@ struct RunMapView: UIViewRepresentable {
             styleURI: styleURI
         )
         let mapView = MapboxMaps.MapView(frame: .zero, mapInitOptions: initOptions)
-        mapView.location.options.puckType = .puck2D(.makeDefault(showBearing: true))
+        var puck = Puck2DConfiguration.makeDefault(showBearing: true)
+        puck.showsAccuracyRing = false
+        mapView.location.options.puckType = .puck2D(puck)
         mapView.location.options.puckBearingEnabled = true
         context.coordinator.mapView = mapView
 
