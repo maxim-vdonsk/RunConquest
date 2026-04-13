@@ -1,14 +1,12 @@
 import SwiftUI
 import UserNotifications
+import UIKit
 
 @main
 struct RunConquestApp: App {
+    @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @State private var showSplash = true
     @State private var appLanguage = AppLanguage()
-
-    init() {
-        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { _, _ in }
-    }
 
     var body: some Scene {
         WindowGroup {
@@ -28,6 +26,30 @@ struct RunConquestApp: App {
                 }
             }
         }
+    }
+}
+
+// MARK: - App Delegate
+
+class AppDelegate: NSObject, UIApplicationDelegate {
+    func application(_ application: UIApplication,
+                     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
+        PushNotificationManager.shared.registerForRemoteNotifications()
+        return true
+    }
+
+    func application(_ application: UIApplication,
+                     didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
+        PushNotificationManager.shared.didRegister(tokenData: deviceToken)
+    }
+
+    func application(_ application: UIApplication,
+                     didFailToRegisterForRemoteNotificationsWithError error: Error) {
+        print("Push registration failed: \(error.localizedDescription)")
+    }
+
+    func applicationDidBecomeActive(_ application: UIApplication) {
+        PushNotificationManager.shared.clearBadge()
     }
 }
 
