@@ -14,6 +14,7 @@ struct ProfileView: View {
     @State private var isLoading = true
     @State private var editingName = false
     @State private var tempName = ""
+    @State private var selectedRun: RunRecord? = nil
     @Environment(\.dismiss) var dismiss
 
     let colors = ["orange", "blue", "green", "red", "purple"]
@@ -187,26 +188,43 @@ struct ProfileView: View {
                         VStack(alignment: .leading, spacing: 6) {
                             NeonLabel(text: lang.t("> RUN HISTORY:", "> ИСТОРИЯ ЗАБЕГОВ:"), color: accent).padding(.horizontal)
                             ForEach(myRuns) { run in
-                                HStack {
-                                    Circle().fill(Neon.colorMap[run.color] ?? Neon.cyan)
-                                        .frame(width: 8, height: 8)
-                                        .shadow(color: Neon.colorMap[run.color] ?? Neon.cyan, radius: 3)
-                                    Text(formatDate(run.created_at ?? ""))
-                                        .font(.system(size: 10, design: .monospaced))
-                                        .foregroundColor(.gray.opacity(0.6))
-                                    Spacer()
-                                    Text(run.is_active == true ? lang.t("ACTIVE", "АКТИВНЫЙ") : lang.t("CAPTURED", "ЗАХВАЧЕН"))
-                                        .font(.system(size: 9, weight: .bold, design: .monospaced))
-                                        .foregroundColor(run.is_active == true ? Neon.green : .gray.opacity(0.4))
-                                        .shadow(color: run.is_active == true ? Neon.green.opacity(0.5) : .clear, radius: 3)
+                                Button(action: { selectedRun = run }) {
+                                    HStack {
+                                        Circle().fill(Neon.colorMap[run.color] ?? Neon.cyan)
+                                            .frame(width: 8, height: 8)
+                                            .shadow(color: Neon.colorMap[run.color] ?? Neon.cyan, radius: 3)
+                                        VStack(alignment: .leading, spacing: 2) {
+                                            Text(formatDate(run.created_at ?? ""))
+                                                .font(.system(size: 10, design: .monospaced))
+                                                .foregroundColor(.gray.opacity(0.6))
+                                            if let dist = run.total_time_seconds {
+                                                Text(formatDuration(seconds: dist))
+                                                    .font(.system(size: 9, design: .monospaced))
+                                                    .foregroundColor(accent.opacity(0.5))
+                                            }
+                                        }
+                                        Spacer()
+                                        HStack(spacing: 6) {
+                                            Text(run.is_active == true ? lang.t("ACTIVE", "АКТИВНЫЙ") : lang.t("CAPTURED", "ЗАХВАЧЕН"))
+                                                .font(.system(size: 9, weight: .bold, design: .monospaced))
+                                                .foregroundColor(run.is_active == true ? Neon.green : .gray.opacity(0.4))
+                                                .shadow(color: run.is_active == true ? Neon.green.opacity(0.5) : .clear, radius: 3)
+                                            Image(systemName: "chevron.right")
+                                                .font(.system(size: 9))
+                                                .foregroundColor(accent.opacity(0.4))
+                                        }
+                                    }
+                                    .padding(.horizontal, 12).padding(.vertical, 10)
+                                    .background(Neon.surface.opacity(0.5))
+                                    .cornerRadius(3)
                                 }
-                                .padding(.horizontal, 12).padding(.vertical, 8)
-                                .background(Neon.surface.opacity(0.5))
-                                .cornerRadius(3)
                                 .padding(.horizontal)
                             }
                         }
                         .padding(.bottom, 20)
+                        .sheet(item: $selectedRun) { run in
+                            RunDetailView(run: run, playerName: savedName)
+                        }
                     }
                 }
             }
