@@ -63,7 +63,7 @@ struct RunDetailView: View {
                         }
 
                         // MARK: Replay Button
-                        if let rid = run.id {
+                        if run.id != nil {
                             Button(action: { showReplay = true }) {
                                 HStack(spacing: 8) {
                                     Image(systemName: "play.circle.fill").foregroundColor(accent)
