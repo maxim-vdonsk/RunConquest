@@ -14,41 +14,64 @@ struct ProfileView: View {
     @State private var tempName = ""
     @Environment(\.dismiss) var dismiss
 
-    let colorMap: [String: Color] = ["orange": .orange, "blue": .blue, "green": .green, "red": .red, "purple": .purple]
     let colors = ["orange", "blue", "green", "red", "purple"]
+    let colorLabels = ["orange": "AMBER", "blue": "CYAN", "green": "MATRIX", "red": "CRIMSON", "purple": "VIOLET"]
 
-    var level: (String, Color) {
+    var accent: Color { Neon.colorMap[savedColor] ?? Neon.cyan }
+
+    var levelData: (String, Color) {
         switch player?.total_area ?? 0 {
-        case 0..<10000: return ("🥉 Новичок", .gray)
-        case 10000..<50000: return ("🥈 Боец", .blue)
-        case 50000..<200000: return ("🥇 Воин", .orange)
-        default: return ("👑 Завоеватель", .yellow)
+        case 0..<10000:    return ("ROOKIE",    .gray)
+        case 10000..<50000: return ("FIGHTER",  Neon.cyan)
+        case 50000..<200000:return ("WARRIOR",  Neon.orange)
+        default:            return ("CONQUEROR",Neon.magenta)
         }
     }
 
     var body: some View {
         ZStack {
-            Color.black.ignoresSafeArea()
+            Neon.bg.ignoresSafeArea()
+            GridBackground()
+
             if isLoading {
-                ProgressView().tint(.orange)
+                VStack(spacing: 12) {
+                    ProgressView().tint(Neon.cyan)
+                    Text("LOADING PROFILE...")
+                        .font(.system(size: 10, design: .monospaced))
+                        .foregroundColor(Neon.cyan.opacity(0.5))
+                        .tracking(3)
+                }
             } else {
                 ScrollView {
-                    VStack(spacing: 20) {
+                    VStack(spacing: 16) {
+                        // Avatar
                         ZStack {
-                            Circle().fill((colorMap[savedColor] ?? .orange).opacity(0.2))
-                                .frame(width: 100, height: 100).blur(radius: 15)
-                            Circle().fill(colorMap[savedColor] ?? .orange).frame(width: 80, height: 80)
+                            Circle()
+                                .fill(accent.opacity(0.12))
+                                .frame(width: 110, height: 110)
+                                .shadow(color: accent.opacity(0.5), radius: 20)
+                            Circle()
+                                .stroke(accent.opacity(0.6), lineWidth: 2)
+                                .frame(width: 90, height: 90)
+                                .shadow(color: accent, radius: 6)
                             Text(String(savedName.prefix(1)).uppercased())
-                                .font(.system(size: 36, weight: .bold)).foregroundColor(.white)
+                                .font(.system(size: 38, weight: .black, design: .monospaced))
+                                .foregroundColor(accent)
+                                .shadow(color: accent, radius: 8)
                         }
                         .padding(.top, 24)
 
+                        // Name
                         if editingName {
                             HStack {
-                                TextField("Имя", text: $tempName)
-                                    .font(.title2.bold()).foregroundColor(.white)
+                                TextField("CALLSIGN", text: $tempName)
+                                    .font(.system(size: 16, weight: .bold, design: .monospaced))
+                                    .foregroundColor(.white)
                                     .multilineTextAlignment(.center)
-                                    .padding(8).background(Color.white.opacity(0.1)).cornerRadius(10)
+                                    .padding(10)
+                                    .background(Neon.surface)
+                                    .cornerRadius(4)
+                                    .overlay(RoundedRectangle(cornerRadius: 4).stroke(accent.opacity(0.6), lineWidth: 1))
                                 Button("OK") {
                                     if !tempName.isEmpty {
                                         savedName = tempName
@@ -56,55 +79,96 @@ struct ProfileView: View {
                                     }
                                     editingName = false
                                 }
-                                .foregroundColor(.orange).bold()
+                                .font(.system(size: 13, weight: .bold, design: .monospaced))
+                                .foregroundColor(accent)
                             }
                             .padding(.horizontal, 40)
                         } else {
-                            HStack(spacing: 8) {
-                                Text(savedName).font(.title2.bold()).foregroundColor(.white)
+                            HStack(spacing: 10) {
+                                Text(savedName.uppercased())
+                                    .font(.system(size: 18, weight: .black, design: .monospaced))
+                                    .foregroundColor(.white)
+                                    .shadow(color: accent.opacity(0.5), radius: 4)
                                 Button(action: { tempName = savedName; editingName = true }) {
-                                    Image(systemName: "pencil").foregroundColor(.gray)
+                                    Image(systemName: "pencil")
+                                        .font(.system(size: 12))
+                                        .foregroundColor(accent.opacity(0.7))
                                 }
                             }
                         }
 
-                        Text(level.0).font(.headline).foregroundColor(level.1)
+                        // Level badge
+                        Text(levelData.0)
+                            .font(.system(size: 12, weight: .bold, design: .monospaced))
+                            .foregroundColor(levelData.1)
+                            .tracking(4)
+                            .padding(.horizontal, 16).padding(.vertical, 6)
+                            .background(levelData.1.opacity(0.1))
+                            .cornerRadius(3)
+                            .overlay(RoundedRectangle(cornerRadius: 3).stroke(levelData.1.opacity(0.4), lineWidth: 1))
+                            .shadow(color: levelData.1.opacity(0.4), radius: 6)
 
-                        HStack(spacing: 12) {
-                            ForEach(colors, id: \.self) { c in
-                                Circle().fill(colorMap[c] ?? .orange).frame(width: 32, height: 32)
-                                    .overlay(Circle().stroke(Color.white, lineWidth: savedColor == c ? 2.5 : 0))
-                                    .scaleEffect(savedColor == c ? 1.15 : 1.0)
-                                    .animation(.spring(response: 0.3), value: savedColor)
+                        // Color selector
+                        VStack(spacing: 8) {
+                            NeonLabel(text: "> FACTION COLOR:", color: accent)
+                            HStack(spacing: 0) {
+                                ForEach(colors, id: \.self) { c in
+                                    let col = Neon.colorMap[c] ?? Neon.cyan
+                                    let isSelected = savedColor == c
+                                    VStack(spacing: 4) {
+                                        Circle().fill(col).frame(width: 32, height: 32)
+                                            .shadow(color: isSelected ? col : .clear, radius: 10)
+                                            .overlay(Circle().stroke(Color.white.opacity(isSelected ? 1 : 0), lineWidth: 2))
+                                            .scaleEffect(isSelected ? 1.2 : 1.0)
+                                            .animation(.spring(response: 0.25), value: savedColor)
+                                        Text(colorLabels[c] ?? "")
+                                            .font(.system(size: 6, design: .monospaced))
+                                            .foregroundColor(isSelected ? col : .gray.opacity(0.4))
+                                    }
+                                    .frame(maxWidth: .infinity)
                                     .onTapGesture {
                                         savedColor = c
                                         UserDefaults.standard.set(c, forKey: "playerColor")
                                     }
+                                }
                             }
                         }
 
-                        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
-                            StatCard(icon: "figure.run", title: "Пробежек", value: "\(player?.total_runs ?? 0)")
-                            StatCard(icon: "map.fill", title: "Территория", value: String(format: "%.0f м²", player?.total_area ?? 0))
-                            StatCard(icon: "road.lanes", title: "Дистанция", value: String(format: "%.1f км", (player?.total_distance ?? 0) / 1000))
-                            StatCard(icon: "bolt.fill", title: "Атак", value: "\(player?.total_attacks ?? 0)")
+                        NeonDivider(color: accent).padding(.horizontal, 20)
+
+                        // Stats grid
+                        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
+                            CyberStatCard(icon: "figure.run",  label: "RUNS",       value: "\(player?.total_runs ?? 0)")
+                            CyberStatCard(icon: "map.fill",    label: "TERRITORY",  value: String(format: "%.0f M²", player?.total_area ?? 0))
+                            CyberStatCard(icon: "road.lanes",  label: "DISTANCE",   value: String(format: "%.1f KM", (player?.total_distance ?? 0) / 1000))
+                            CyberStatCard(icon: "bolt.fill",   label: "ATTACKS",    value: "\(player?.total_attacks ?? 0)", color: Neon.red)
                         }
                         .padding(.horizontal)
 
-                        VStack(alignment: .leading, spacing: 10) {
-                            Text("История пробежек").font(.headline).foregroundColor(.white).padding(.horizontal)
+                        // Run history
+                        VStack(alignment: .leading, spacing: 6) {
+                            NeonLabel(text: "> RUN HISTORY:", color: accent).padding(.horizontal)
                             ForEach(myRuns) { run in
                                 HStack {
-                                    Circle().fill(colorMap[run.color] ?? .orange).frame(width: 10, height: 10)
-                                    Text(formatDate(run.created_at ?? "")).foregroundColor(.gray).font(.caption)
+                                    Circle().fill(Neon.colorMap[run.color] ?? Neon.cyan)
+                                        .frame(width: 8, height: 8)
+                                        .shadow(color: Neon.colorMap[run.color] ?? Neon.cyan, radius: 3)
+                                    Text(formatDate(run.created_at ?? ""))
+                                        .font(.system(size: 10, design: .monospaced))
+                                        .foregroundColor(.gray.opacity(0.6))
                                     Spacer()
-                                    Text(run.is_active == true ? "🟢 Активна" : "⚫ Завоёвана")
-                                        .font(.caption).foregroundColor(run.is_active == true ? .green : .gray)
+                                    Text(run.is_active == true ? "ACTIVE" : "CAPTURED")
+                                        .font(.system(size: 9, weight: .bold, design: .monospaced))
+                                        .foregroundColor(run.is_active == true ? Neon.green : .gray.opacity(0.4))
+                                        .shadow(color: run.is_active == true ? Neon.green.opacity(0.5) : .clear, radius: 3)
                                 }
-                                .padding(.horizontal).padding(.vertical, 8)
-                                .background(Color.white.opacity(0.05)).cornerRadius(10).padding(.horizontal)
+                                .padding(.horizontal, 12).padding(.vertical, 8)
+                                .background(Neon.surface.opacity(0.5))
+                                .cornerRadius(3)
+                                .padding(.horizontal)
                             }
                         }
+                        .padding(.bottom, 20)
                     }
                 }
             }
@@ -124,21 +188,39 @@ struct ProfileView: View {
         f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
         guard let date = f.date(from: dateStr) else { return dateStr }
         let d = DateFormatter(); d.dateFormat = "dd MMM, HH:mm"; d.locale = Locale(identifier: "ru_RU")
-        return d.string(from: date)
+        return d.string(from: date).uppercased()
     }
 }
 
 // MARK: - Stat Card
 
-struct StatCard: View {
-    let icon: String; let title: String; let value: String
+struct CyberStatCard: View {
+    let icon: String
+    let label: String
+    let value: String
+    var color: Color = Neon.cyan
+
     var body: some View {
         VStack(spacing: 8) {
-            Image(systemName: icon).foregroundColor(.orange).font(.title2)
-            Text(value).font(.title3.bold()).foregroundColor(.white)
-            Text(title).font(.caption).foregroundColor(.gray)
+            Image(systemName: icon)
+                .foregroundColor(color)
+                .font(.title3)
+                .shadow(color: color.opacity(0.7), radius: 4)
+            Text(value)
+                .font(.system(size: 16, weight: .black, design: .monospaced))
+                .foregroundColor(.white)
+            Text(label)
+                .font(.system(size: 8, design: .monospaced))
+                .foregroundColor(.gray.opacity(0.5))
+                .tracking(2)
         }
-        .frame(maxWidth: .infinity).padding()
-        .background(Color.white.opacity(0.07)).cornerRadius(16)
+        .frame(maxWidth: .infinity)
+        .padding()
+        .background(Neon.surface)
+        .cornerRadius(4)
+        .overlay(RoundedRectangle(cornerRadius: 4).stroke(color.opacity(0.2), lineWidth: 1))
     }
 }
+
+// Keep StatCard alias for backwards compatibility
+typealias StatCard = CyberStatCard

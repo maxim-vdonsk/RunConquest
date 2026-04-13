@@ -9,45 +9,110 @@ struct LeaderboardView: View {
 
     var body: some View {
         ZStack {
-            Color.black.ignoresSafeArea()
-            VStack {
-                Text("🏆 ЛИДЕРБОРД")
-                    .font(.title2.bold()).foregroundColor(.orange).tracking(2).padding(.top, 20)
+            Neon.bg.ignoresSafeArea()
+            GridBackground()
+
+            VStack(spacing: 0) {
+                // Header
+                VStack(spacing: 6) {
+                    NeonLabel(text: "// GLOBAL NETWORK //")
+                    Text("RANKINGS")
+                        .font(.system(size: 26, weight: .black, design: .monospaced))
+                        .foregroundColor(.white)
+                        .tracking(6)
+                        .shadow(color: Neon.cyan, radius: 8)
+                    NeonDivider().padding(.horizontal, 40)
+                }
+                .padding(.top, 24)
+                .padding(.bottom, 16)
+
                 if isLoading {
-                    Spacer(); ProgressView().tint(.orange); Spacer()
+                    Spacer()
+                    VStack(spacing: 12) {
+                        ProgressView().tint(Neon.cyan)
+                        Text("SYNCING DATA...")
+                            .font(.system(size: 10, design: .monospaced))
+                            .foregroundColor(Neon.cyan.opacity(0.5))
+                            .tracking(3)
+                    }
+                    Spacer()
                 } else {
                     ScrollView {
-                        VStack(spacing: 8) {
+                        VStack(spacing: 4) {
                             ForEach(Array(players.enumerated()), id: \.offset) { index, player in
-                                HStack(spacing: 12) {
-                                    Text(medalFor(index)).font(.title2).frame(width: 36)
-                                    VStack(alignment: .leading, spacing: 2) {
-                                        Text(player.name).font(.headline)
-                                            .foregroundColor(player.name == currentPlayer ? .orange : .white)
-                                        Text("\(player.total_runs) пробежек · \(player.total_attacks) атак")
-                                            .font(.caption).foregroundColor(.gray)
-                                    }
-                                    Spacer()
-                                    VStack(alignment: .trailing, spacing: 2) {
-                                        Text(String(format: "%.0f м²", player.total_area))
-                                            .font(.headline).foregroundColor(.orange)
-                                        Text(String(format: "%.1f км", player.total_distance / 1000))
-                                            .font(.caption).foregroundColor(.gray)
-                                    }
-                                }
-                                .padding()
-                                .background(player.name == currentPlayer ? Color.orange.opacity(0.15) : Color.white.opacity(0.05))
-                                .cornerRadius(14).padding(.horizontal)
+                                RankRow(index: index, player: player, isMe: player.name == currentPlayer)
                             }
-                        }.padding(.top, 8)
+                        }
+                        .padding(.horizontal)
+                        .padding(.bottom, 20)
                     }
                 }
             }
         }
         .task { players = await SupabaseService.shared.fetchLeaderboard(); isLoading = false }
     }
+}
 
-    func medalFor(_ index: Int) -> String {
-        switch index { case 0: return "🥇"; case 1: return "🥈"; case 2: return "🥉"; default: return "\(index + 1)" }
+struct RankRow: View {
+    let index: Int
+    let player: PlayerRecord
+    let isMe: Bool
+
+    var rankColor: Color {
+        switch index {
+        case 0: return Neon.orange
+        case 1: return Color(white: 0.8)
+        case 2: return Color(red: 0.8, green: 0.5, blue: 0.2)
+        default: return Neon.cyan.opacity(0.5)
+        }
+    }
+
+    var rankLabel: String {
+        switch index {
+        case 0: return "#01"
+        case 1: return "#02"
+        case 2: return "#03"
+        default: return String(format: "#%02d", index + 1)
+        }
+    }
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Text(rankLabel)
+                .font(.system(size: 16, weight: .black, design: .monospaced))
+                .foregroundColor(rankColor)
+                .shadow(color: index < 3 ? rankColor : .clear, radius: 6)
+                .frame(width: 36)
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(player.name.uppercased())
+                    .font(.system(size: 13, weight: .bold, design: .monospaced))
+                    .foregroundColor(isMe ? Neon.cyan : .white)
+                    .shadow(color: isMe ? Neon.cyan.opacity(0.6) : .clear, radius: 4)
+                Text("\(player.total_runs) RUNS · \(player.total_attacks) ATTACKS")
+                    .font(.system(size: 9, design: .monospaced))
+                    .foregroundColor(.gray.opacity(0.5))
+                    .tracking(1)
+            }
+
+            Spacer()
+
+            VStack(alignment: .trailing, spacing: 3) {
+                Text(String(format: "%.0f M²", player.total_area))
+                    .font(.system(size: 13, weight: .bold, design: .monospaced))
+                    .foregroundColor(isMe ? Neon.cyan : Neon.orange)
+                    .shadow(color: (isMe ? Neon.cyan : Neon.orange).opacity(0.5), radius: 4)
+                Text(String(format: "%.1f KM", player.total_distance / 1000))
+                    .font(.system(size: 9, design: .monospaced))
+                    .foregroundColor(.gray.opacity(0.5))
+            }
+        }
+        .padding(12)
+        .background(isMe ? Neon.cyan.opacity(0.07) : Neon.surface.opacity(0.6))
+        .cornerRadius(4)
+        .overlay(
+            RoundedRectangle(cornerRadius: 4)
+                .stroke(isMe ? Neon.cyan.opacity(0.5) : Color.white.opacity(0.04), lineWidth: 1)
+        )
     }
 }

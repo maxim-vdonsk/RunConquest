@@ -146,12 +146,12 @@ struct RunMapView: UIViewRepresentable {
 
         func colorToHex(_ color: String) -> String {
             switch color {
-            case "orange": return "#FF8C00"
-            case "blue":   return "#0080FF"
-            case "green":  return "#00CC44"
-            case "red":    return "#FF2200"
-            case "purple": return "#9933FF"
-            default:       return "#FF8C00"
+            case "orange": return "#FF6B00"
+            case "blue":   return "#00F2FF"
+            case "green":  return "#00FF41"
+            case "red":    return "#FF2D55"
+            case "purple": return "#BF00FF"
+            default:       return "#FF6B00"
             }
         }
     }
