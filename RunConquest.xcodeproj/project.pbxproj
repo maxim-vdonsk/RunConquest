@@ -14,6 +14,7 @@
 		1B293C9D2F8AB3320032CA92 /* RunConquest.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = RunConquest.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		AA0000012F8AB3320032AA01 /* Secrets.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; path = Secrets.xcconfig; sourceTree = "<group>"; };
 		AA0000022F8AB3320032AA01 /* Secrets.example.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; path = Secrets.example.xcconfig; sourceTree = "<group>"; };
+		AA0000032F8AB3320032AA01 /* RunConquest.entitlements */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.entitlements; path = RunConquest.entitlements; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -43,6 +44,7 @@
 				1B293C9E2F8AB3320032CA92 /* Products */,
 				AA0000012F8AB3320032AA01 /* Secrets.xcconfig */,
 				AA0000022F8AB3320032AA01 /* Secrets.example.xcconfig */,
+				AA0000032F8AB3320032AA01 /* RunConquest.entitlements */,
 			);
 			sourceTree = "<group>";
 		};
@@ -265,12 +267,15 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = RunConquest/RunConquest.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 98MVBRPSSW;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_MBXAccessToken = "$(MAPBOX_ACCESS_TOKEN)";
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "Используется для чтения пульса во время пробежки";
+				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "Используется для сохранения тренировки в Health";
 				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "Нужно для отслеживания маршрута в фоне";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Нужно для отслеживания маршрута во время пробежки";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -301,12 +306,15 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = RunConquest/RunConquest.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 98MVBRPSSW;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_MBXAccessToken = "$(MAPBOX_ACCESS_TOKEN)";
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "Используется для чтения пульса во время пробежки";
+				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "Используется для сохранения тренировки в Health";
 				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "Нужно для отслеживания маршрута в фоне";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Нужно для отслеживания маршрута во время пробежки";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
