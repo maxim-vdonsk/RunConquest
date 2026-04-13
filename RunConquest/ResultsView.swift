@@ -140,12 +140,10 @@ struct ResultsView: View {
                            unit: "M²", color: Neon.green)
             }
             HStack(spacing: 8) {
-                if avgHeartRate > 0 {
-                    MetricTile(icon: "heart.fill",
-                               label: lang.t("AVG BPM", "СР. ПУЛЬС"),
-                               value: "\(avgHeartRate)",
-                               unit: "BPM", color: Neon.red)
-                }
+                MetricTile(icon: "heart.fill",
+                           label: lang.t("AVG BPM", "СР. ПУЛЬС"),
+                           value: avgHeartRate > 0 ? "\(avgHeartRate)" : "--",
+                           unit: "BPM", color: avgHeartRate > 0 ? Neon.red : .gray)
                 if calories > 0 {
                     MetricTile(icon: "flame.fill",
                                label: lang.t("CALORIES", "КАЛОРИИ"),

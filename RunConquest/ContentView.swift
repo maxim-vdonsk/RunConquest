@@ -200,13 +200,11 @@ struct ContentView: View {
                     value: "\(points)",
                     unit: lang.t("PTS", "ОЧК"), color: accent
                 )
-                if healthKit.heartRate > 0 {
-                    hudDivider
-                    AnimatedHUDStat(
-                        value: "\(healthKit.heartRate)",
-                        unit: "BPM", color: heartRateColor
-                    )
-                }
+                hudDivider
+                AnimatedHUDStat(
+                    value: healthKit.heartRate > 0 ? "\(healthKit.heartRate)" : "--",
+                    unit: "BPM", color: healthKit.heartRate > 0 ? heartRateColor : .gray
+                )
                 if attackedCount > 0 {
                     hudDivider
                     AnimatedHUDStat(value: "⚔\(attackedCount)", unit: lang.t("HITS", "УДА"), color: Neon.red)
