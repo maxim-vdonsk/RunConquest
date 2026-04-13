@@ -19,7 +19,24 @@ struct RunMapView: UIViewRepresentable {
             styleURI: styleURI
         )
         let mapView = MapboxMaps.MapView(frame: .zero, mapInitOptions: initOptions)
-        var puck = Puck2DConfiguration.makeDefault(showBearing: true)
+        let arrowImage = UIGraphicsImageRenderer(size: CGSize(width: 28, height: 28)).image { ctx in
+            let color = UIColor.cyan
+            let path = UIBezierPath()
+            path.move(to: CGPoint(x: 14, y: 2))
+            path.addLine(to: CGPoint(x: 24, y: 26))
+            path.addLine(to: CGPoint(x: 14, y: 21))
+            path.addLine(to: CGPoint(x: 4, y: 26))
+            path.close()
+            color.withAlphaComponent(0.95).setFill()
+            path.fill()
+            UIColor.white.withAlphaComponent(0.4).setStroke()
+            path.lineWidth = 1
+            path.stroke()
+        }
+        var puck = Puck2DConfiguration()
+        puck.topImage = arrowImage
+        puck.bearingImage = arrowImage
+        puck.shadowImage = nil
         puck.showsAccuracyRing = false
         mapView.location.options.puckType = .puck2D(puck)
         mapView.location.options.puckBearingEnabled = true
