@@ -32,7 +32,7 @@ class SupabaseService {
     private func secureRandomCode(length: Int = 8) -> String {
         let chars = Array("ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
         var bytes = [UInt8](repeating: 0, count: length)
-        SecRandomCopyBytes(kSecRandomDefault, length, &bytes)
+        _ = SecRandomCopyBytes(kSecRandomDefault, length, &bytes)
         return String(bytes.map { chars[Int($0) % chars.count] })
     }
 
