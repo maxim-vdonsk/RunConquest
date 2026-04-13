@@ -3,9 +3,11 @@ import SwiftUI
 // MARK: - Main Tab View
 
 struct MainTabView: View {
-    @AppStorage("playerName") private var playerName: String = ""
+    @AppStorage("playerName")  private var playerName: String = ""
     @AppStorage("playerColor") private var playerColor: String = "orange"
     @AppStorage("isRunActive") private var isRunActive: Bool = false
+    @State private var bindableName: String = ""
+    @State private var bindableColor: String = "orange"
     @Environment(AppLanguage.self) private var lang
     @State private var selectedTab: AppTab = .map
 
@@ -58,17 +60,18 @@ struct MainTabView: View {
                     .tag(AppTab.rankings)
                     .toolbarBackground(.hidden, for: .tabBar)
 
-                TrainingPlanView(playerName: playerName)
+                TrainingPlanView()
                     .tag(AppTab.plans)
                     .toolbarBackground(.hidden, for: .tabBar)
 
                 ProfileView(
-                    playerName: playerName,
-                    color: playerColor,
-                    savedName: .constant(playerName),
-                    savedColor: .constant(playerColor)
+                    playerName: bindableName.isEmpty ? playerName : bindableName,
+                    color: bindableColor,
+                    savedName: $bindableName,
+                    savedColor: $bindableColor
                 )
                 .tag(AppTab.profile)
+                .onAppear { bindableName = playerName; bindableColor = playerColor }
                 .toolbarBackground(.hidden, for: .tabBar)
             }
             .tabViewStyle(.automatic)
