@@ -386,4 +386,51 @@ class SupabaseService {
             _ = try? await URLSession.shared.data(for: req)
         }
     }
+
+    // MARK: - Convenience wrappers
+
+    /// Fetch city leaderboard by looking up player's city first
+    func fetchLeaderboardByCity(playerName: String) async -> [PlayerRecord] {
+        guard let player = await fetchPlayer(name: playerName),
+              let city = player.city, !city.isEmpty else { return [] }
+        return await fetchLeaderboardByCity(city: city)
+    }
+
+    /// Fetch leaderboard of friends (external-facing parameter name)
+    func fetchLeaderboardFriends(playerName: String) async -> [PlayerRecord] {
+        await fetchLeaderboardFriends(myName: playerName)
+    }
+
+    /// Fetch current month's challenges
+    func fetchChallenges() async -> [Challenge] {
+        let now = Calendar.current.dateComponents([.month, .year], from: Date())
+        return await fetchChallenges(month: now.month ?? 1, year: now.year ?? 2025)
+    }
+
+    /// Fetch challenge progress, optionally filtering by challenge IDs
+    func fetchChallengeProgress(playerName: String, challengeIds: [String]) async -> [ChallengeProgress] {
+        let all = await fetchChallengeProgress(playerName: playerName)
+        guard !challengeIds.isEmpty else { return all }
+        return all.filter { p in
+            guard let cid = p.challenge_id else { return false }
+            return challengeIds.contains(cid)
+        }
+    }
+
+    /// Join squad by invite code
+    func joinSquad(playerName: String, code: String) async -> Bool {
+        guard let squad = await fetchSquadByCode(code), let squadId = squad.id else { return false }
+        await joinSquad(squadId: squadId, squadName: squad.name, playerName: playerName)
+        return true
+    }
+
+    /// Create squad with a random color, return success bool
+    func createSquad(name: String, leaderName: String) async -> Bool {
+        let colors = ["cyan", "magenta", "orange", "green", "red"]
+        let color = colors.randomElement() ?? "cyan"
+        let squad = await createSquad(name: name, ownerName: leaderName, color: color)
+        guard let squadId = squad?.id, let squadName = squad?.name else { return false }
+        await joinSquad(squadId: squadId, squadName: squadName, playerName: leaderName)
+        return true
+    }
 }

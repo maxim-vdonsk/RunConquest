@@ -31,6 +31,7 @@ struct ContentView: View {
 
     @AppStorage("playerName") private var savedName: String = ""
     @AppStorage("playerColor") private var savedColor: String = "orange"
+    @AppStorage("isRunActive") private var isRunActive: Bool = false
 
     @Environment(AppLanguage.self) private var lang
 
@@ -71,6 +72,7 @@ struct ContentView: View {
                     UserDefaults.standard.set(savedName, forKey: "playerName")
                     UserDefaults.standard.set(savedColor, forKey: "playerColor")
                     showSetup = false
+                    isRunActive = true
                     locationManager.startTracking()
                     realtimeManager.connect()
                     if healthKit.isAvailable {
@@ -97,6 +99,7 @@ struct ContentView: View {
                     onRestart: {
                         realtimeManager.disconnect()
                         attackedIds = []; attackedCount = 0; finishedRunId = nil; finalElapsed = 0
+                        isRunActive = true
                         withAnimation { showResults = false }
                         locationManager.startTracking()
                         realtimeManager.connect()
@@ -110,6 +113,7 @@ struct ContentView: View {
                     .transition(.opacity)
                     .onAppear {
                         if !locationManager.isTracking {
+                            isRunActive = true
                             locationManager.startTracking()
                             realtimeManager.connect()
                             Task { await healthKit.requestAuthorization() }
@@ -377,6 +381,7 @@ struct ContentView: View {
 
     func handleStop() {
         locationManager.stopTracking()
+        isRunActive = false
         isSaving = true
         let capturedDistance  = locationManager.distanceMeters
         let capturedArea      = locationManager.conqueredArea

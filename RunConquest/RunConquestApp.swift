@@ -7,11 +7,16 @@ struct RunConquestApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @State private var showSplash = true
     @State private var appLanguage = AppLanguage()
+    @AppStorage("hasSeenOnboarding") private var hasSeenOnboarding: Bool = false
 
     var body: some Scene {
         WindowGroup {
             ZStack {
-                ContentView()
+                if hasSeenOnboarding {
+                    MainTabView()
+                } else {
+                    OnboardingView()
+                }
                 if showSplash {
                     SplashView()
                         .transition(.opacity)
@@ -20,6 +25,7 @@ struct RunConquestApp: App {
             }
             .environment(appLanguage)
             .animation(.easeOut(duration: 0.5), value: showSplash)
+            .animation(.easeInOut(duration: 0.4), value: hasSeenOnboarding)
             .onAppear {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 3.2) {
                     showSplash = false

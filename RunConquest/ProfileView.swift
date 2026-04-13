@@ -15,6 +15,10 @@ struct ProfileView: View {
     @State private var editingName = false
     @State private var tempName = ""
     @State private var selectedRun: RunRecord? = nil
+    @State private var showSettings = false
+    @State private var showFriends = false
+    @State private var showSquads = false
+    @State private var showChallenges = false
     @Environment(\.dismiss) var dismiss
 
     let colors = ["orange", "blue", "green", "red", "purple"]
@@ -36,6 +40,23 @@ struct ProfileView: View {
         ZStack {
             Neon.bg.ignoresSafeArea()
             GridBackground()
+
+            // Settings button
+            VStack {
+                HStack {
+                    Spacer()
+                    Button(action: { showSettings = true }) {
+                        Image(systemName: "gearshape.fill")
+                            .font(.system(size: 14))
+                            .foregroundColor(Neon.cyan.opacity(0.6))
+                            .frame(width: 36, height: 36)
+                            .background(Neon.surface.opacity(0.6))
+                            .cornerRadius(4)
+                    }
+                    .padding(.top, 16).padding(.trailing, 16)
+                }
+                Spacer()
+            }
 
             if isLoading {
                 VStack(spacing: 12) {
@@ -184,6 +205,19 @@ struct ProfileView: View {
                         }
                         .padding(.horizontal)
 
+                        // Quick access
+                        VStack(spacing: 6) {
+                            NeonLabel(text: lang.t("> NETWORK:", "> СЕТЬ:"), color: accent).padding(.horizontal)
+                            HStack(spacing: 8) {
+                                profileNavButton(icon: "person.2.fill", label: lang.t("FRIENDS", "ДРУЗЬЯ"), color: Neon.cyan) { showFriends = true }
+                                profileNavButton(icon: "shield.fill", label: lang.t("SQUADS", "ОТРЯДЫ"), color: Neon.magenta) { showSquads = true }
+                                profileNavButton(icon: "trophy.fill", label: lang.t("MISSIONS", "МИССИИ"), color: Neon.orange) { showChallenges = true }
+                            }
+                            .padding(.horizontal)
+                        }
+
+                        NeonDivider(color: accent).padding(.horizontal, 20)
+
                         // Run history
                         VStack(alignment: .leading, spacing: 6) {
                             NeonLabel(text: lang.t("> RUN HISTORY:", "> ИСТОРИЯ ЗАБЕГОВ:"), color: accent).padding(.horizontal)
@@ -236,6 +270,27 @@ struct ProfileView: View {
             player = players.first(where: { $0.name == savedName })
             myRuns = runs
             isLoading = false
+        }
+        .sheet(isPresented: $showSettings) { SettingsView() }
+        .sheet(isPresented: $showFriends)  { FriendsView(playerName: savedName) }
+        .sheet(isPresented: $showSquads)   { SquadsView(playerName: savedName) }
+        .sheet(isPresented: $showChallenges) { ChallengesView(playerName: savedName) }
+    }
+
+    @ViewBuilder
+    private func profileNavButton(icon: String, label: String, color: Color, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            VStack(spacing: 6) {
+                Image(systemName: icon).font(.system(size: 18))
+                    .foregroundColor(color).shadow(color: color.opacity(0.6), radius: 6)
+                Text(label)
+                    .font(.system(size: 8, weight: .bold, design: .monospaced))
+                    .foregroundColor(color.opacity(0.7)).tracking(1)
+            }
+            .frame(maxWidth: .infinity).padding(.vertical, 14)
+            .background(color.opacity(0.07))
+            .cornerRadius(6)
+            .overlay(RoundedRectangle(cornerRadius: 6).stroke(color.opacity(0.2), lineWidth: 1))
         }
     }
 
