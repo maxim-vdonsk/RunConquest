@@ -1,5 +1,6 @@
 import SwiftUI
 import Charts
+import CoreLocation
 
 // MARK: - Results
 
@@ -15,6 +16,7 @@ struct ResultsView: View {
     let avgHeartRate: Int
     let calories: Int
     let splits: [SplitData]
+    let routeCoordinates: [CLLocationCoordinate2D]
     let runId: String?
     let onRestart: () -> Void
 
@@ -92,7 +94,7 @@ struct ResultsView: View {
             withAnimation(.spring(response: 0.55, dampingFraction: 0.75).delay(0.1)) { appeared = true }
         }
         .fullScreenCover(isPresented: $showReplay) {
-            ReplayView(runId: runId, color: color)
+            ReplayView(coordinates: routeCoordinates, color: color)
         }
     }
 

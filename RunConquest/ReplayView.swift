@@ -5,14 +5,13 @@ import CoreLocation
 // MARK: - Replay View
 
 struct ReplayView: View {
-    let runId: String?
+    let coordinates: [CLLocationCoordinate2D]
     let color: String
 
     @Environment(AppLanguage.self) private var lang
     @Environment(\.dismiss) private var dismiss
 
-    @State private var coordinates: [CLLocationCoordinate2D] = []
-    @State private var isLoading = true
+    @State private var isLoading = false
     @State private var isPlaying = false
     @State private var playedIndex = 0
     @State private var speed: Double = 2        // точек в секунд
@@ -146,28 +145,10 @@ struct ReplayView: View {
                 CornerBrackets(color: accent)
             }
         }
-        .task {
-            await loadCoordinates()
+        .onAppear {
+            if !coordinates.isEmpty { startReplay() }
         }
         .onDisappear { stopReplay() }
-    }
-
-    // MARK: - Load
-
-    private func loadCoordinates() async {
-        guard let rid = runId else {
-            isLoading = false; return
-        }
-        let runs = await SupabaseService.shared.fetchMyRuns(playerName: "")
-        // Fetch by id
-        let allRuns = await SupabaseService.shared.fetchRuns()
-        if let run = allRuns.first(where: { $0.id == rid }),
-           let coords = parseCoordinates(run.coordinates) {
-            coordinates = coords
-        }
-        isLoading = false
-        if !coordinates.isEmpty { startReplay() }
-        _ = runs  // suppress unused warning
     }
 
     // MARK: - Controls

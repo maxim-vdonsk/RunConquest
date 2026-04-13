@@ -76,7 +76,7 @@ struct RunDetailView: View {
                                 .overlay(RoundedRectangle(cornerRadius: 4).stroke(accent.opacity(0.5), lineWidth: 1))
                             }
                             .fullScreenCover(isPresented: $showReplay) {
-                                ReplayView(runId: rid, color: run.color)
+                                ReplayView(coordinates: coords, color: run.color)
                             }
                         }
 

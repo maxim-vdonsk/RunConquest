@@ -95,6 +95,7 @@ struct ContentView: View {
                     avgHeartRate: healthKit.heartRate,
                     calories: Int(healthKit.calories),
                     splits: locationManager.splits,
+                    routeCoordinates: locationManager.routeCoordinates,
                     runId: finishedRunId,
                     onRestart: {
                         realtimeManager.disconnect()
