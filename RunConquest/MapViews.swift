@@ -109,7 +109,8 @@ struct RunMapView: UIViewRepresentable {
             if routeCoordinates.count >= 2 {
                 addRoute(mapView: mapView, id: "my-route", coords: routeCoordinates)
             }
-            if routeCoordinates.count >= 3 {
+            let routeDistanceM = totalDistance(routeCoordinates)
+            if routeCoordinates.count >= 3 && routeDistanceM >= 50 {
                 addZone(mapView: mapView, id: "my-zone", coords: routeCoordinates, colorHex: colorToHex(myColor), opacity: 0.6)
             }
         }
@@ -151,6 +152,17 @@ struct RunMapView: UIViewRepresentable {
             lineLayer.lineJoin = .constant(.round)
             try? mapView.mapboxMap.addLayer(lineLayer)
             addedLayerIds.insert("\(id)-layer")
+        }
+
+        func totalDistance(_ coords: [CLLocationCoordinate2D]) -> Double {
+            guard coords.count > 1 else { return 0 }
+            var total = 0.0
+            for i in 1..<coords.count {
+                let a = CLLocation(latitude: coords[i-1].latitude, longitude: coords[i-1].longitude)
+                let b = CLLocation(latitude: coords[i].latitude,   longitude: coords[i].longitude)
+                total += a.distance(from: b)
+            }
+            return total
         }
 
         func makeBufferedPolygon(coords: [CLLocationCoordinate2D], radius: Double) -> [CLLocationCoordinate2D] {
