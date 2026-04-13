@@ -411,10 +411,7 @@ class SupabaseService {
     func fetchChallengeProgress(playerName: String, challengeIds: [String]) async -> [ChallengeProgress] {
         let all = await fetchChallengeProgress(playerName: playerName)
         guard !challengeIds.isEmpty else { return all }
-        return all.filter { p in
-            guard let cid = p.challenge_id else { return false }
-            return challengeIds.contains(cid)
-        }
+        return all.filter { challengeIds.contains($0.challenge_id) }
     }
 
     /// Join squad by invite code

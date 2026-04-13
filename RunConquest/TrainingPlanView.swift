@@ -68,12 +68,13 @@ struct TrainingSession: Identifiable {
 
 // MARK: - Plan Storage
 
-class PlanProgress: ObservableObject {
+@Observable
+class PlanProgress {
     static let shared = PlanProgress()
 
-    @Published var activePlanId: String?     = UserDefaults.standard.string(forKey: "activePlanId")
-    @Published var activeWeekIndex: Int      = UserDefaults.standard.integer(forKey: "activePlanWeek")
-    @Published var completedSessionIds: Set<String> = {
+    var activePlanId: String?        = UserDefaults.standard.string(forKey: "activePlanId")
+    var activeWeekIndex: Int         = UserDefaults.standard.integer(forKey: "activePlanWeek")
+    var completedSessionIds: Set<String> = {
         let arr = UserDefaults.standard.stringArray(forKey: "completedSessions") ?? []
         return Set(arr)
     }()
@@ -111,110 +112,113 @@ struct PlanLibrary {
     static let plans: [TrainingPlan] = [plan5K, plan10K, planHalf, planMarathon]
 
     // MARK: 5K — 6 weeks
-    static let plan5K = TrainingPlan(
-        id: "5k", nameEN: "5K PLAN", nameRU: "ПЛАН 5 КМ",
-        descEN: "6-week beginner plan to complete your first 5K run",
-        descRU: "6-недельный план для первого забега на 5 км",
-        weeks: (0..<6).map { w in
-            TrainingWeek(id: w, sessions: [
-                TrainingSession(id: w*10+1, dayOfWeek: 1, type: .easy,
-                    distanceKm: Double(w) * 0.5 + 2.0, durationMin: (w*3+15),
-                    descEN: "Easy pace, conversational", descRU: "Лёгкий темп, разговорный"),
-                TrainingSession(id: w*10+2, dayOfWeek: 3, type: .interval,
-                    distanceKm: Double(w) * 0.3 + 1.5, durationMin: (w*2+20),
-                    descEN: "4x400m at 5K pace with 90s rest", descRU: "4×400м в темпе 5К, отдых 90 сек"),
-                TrainingSession(id: w*10+3, dayOfWeek: 5, type: .rest,
-                    distanceKm: 0, durationMin: 0,
-                    descEN: "Active recovery or rest", descRU: "Активное восстановление или отдых"),
-                TrainingSession(id: w*10+4, dayOfWeek: 6, type: w < 4 ? .easy : .long,
-                    distanceKm: Double(w) * 0.4 + 3.0, durationMin: (w*4+20),
-                    descEN: "Weekend long run", descRU: "Длинный бег на выходных")
-            ])
-        },
-        goalDistanceKm: 5, icon: "hare.fill", color: Neon.green
-    )
+    static let plan5K: TrainingPlan = {
+        let weeks: [TrainingWeek] = (0..<6).map { w in
+            let s1 = TrainingSession(id: w*10+1, dayOfWeek: 1, type: .easy,
+                distanceKm: Double(w) * 0.5 + 2.0, durationMin: w*3+15,
+                descEN: "Easy pace, conversational", descRU: "Лёгкий темп, разговорный")
+            let s2 = TrainingSession(id: w*10+2, dayOfWeek: 3, type: .interval,
+                distanceKm: Double(w) * 0.3 + 1.5, durationMin: w*2+20,
+                descEN: "4x400m at 5K pace with 90s rest", descRU: "4×400м в темпе 5К, отдых 90 сек")
+            let s3 = TrainingSession(id: w*10+3, dayOfWeek: 5, type: .rest,
+                distanceKm: 0, durationMin: 0,
+                descEN: "Active recovery or rest", descRU: "Активное восстановление или отдых")
+            let s4type: SessionType = w < 4 ? .easy : .long
+            let s4 = TrainingSession(id: w*10+4, dayOfWeek: 6, type: s4type,
+                distanceKm: Double(w) * 0.4 + 3.0, durationMin: w*4+20,
+                descEN: "Weekend long run", descRU: "Длинный бег на выходных")
+            return TrainingWeek(id: w, sessions: [s1, s2, s3, s4])
+        }
+        return TrainingPlan(id: "5k", nameEN: "5K PLAN", nameRU: "ПЛАН 5 КМ",
+            descEN: "6-week beginner plan to complete your first 5K run",
+            descRU: "6-недельный план для первого забега на 5 км",
+            weeks: weeks, goalDistanceKm: 5, icon: "hare.fill", color: Neon.green)
+    }()
 
     // MARK: 10K — 8 weeks
-    static let plan10K = TrainingPlan(
-        id: "10k", nameEN: "10K PLAN", nameRU: "ПЛАН 10 КМ",
-        descEN: "8-week plan to conquer the 10K distance",
-        descRU: "8-недельный план для забега на 10 км",
-        weeks: (0..<8).map { w in
-            TrainingWeek(id: w, sessions: [
-                TrainingSession(id: w*10+1, dayOfWeek: 1, type: .easy,
-                    distanceKm: Double(w) * 0.6 + 4.0, durationMin: w*3+25,
-                    descEN: "Easy aerobic run", descRU: "Лёгкий аэробный бег"),
-                TrainingSession(id: w*10+2, dayOfWeek: 3, type: .tempo,
-                    distanceKm: Double(w) * 0.4 + 3.0, durationMin: w*2+25,
-                    descEN: "Tempo run at comfortably hard pace", descRU: "Темповый бег в комфортно-тяжёлом темпе"),
-                TrainingSession(id: w*10+3, dayOfWeek: 5, type: .interval,
-                    distanceKm: Double(w) * 0.3 + 2.5, durationMin: w*3+25,
-                    descEN: "6x800m at 10K pace", descRU: "6×800м в темпе 10К"),
-                TrainingSession(id: w*10+4, dayOfWeek: 7, type: .long,
-                    distanceKm: Double(w) * 0.7 + 6.0, durationMin: w*5+40,
-                    descEN: "Long slow distance run", descRU: "Длинный медленный бег")
-            ])
-        },
-        goalDistanceKm: 10, icon: "figure.run.circle.fill", color: Neon.cyan
-    )
+    static let plan10K: TrainingPlan = {
+        let weeks: [TrainingWeek] = (0..<8).map { w in
+            let s1 = TrainingSession(id: w*10+1, dayOfWeek: 1, type: .easy,
+                distanceKm: Double(w) * 0.6 + 4.0, durationMin: w*3+25,
+                descEN: "Easy aerobic run", descRU: "Лёгкий аэробный бег")
+            let s2 = TrainingSession(id: w*10+2, dayOfWeek: 3, type: .tempo,
+                distanceKm: Double(w) * 0.4 + 3.0, durationMin: w*2+25,
+                descEN: "Tempo run at comfortably hard pace", descRU: "Темповый бег в комфортно-тяжёлом темпе")
+            let s3 = TrainingSession(id: w*10+3, dayOfWeek: 5, type: .interval,
+                distanceKm: Double(w) * 0.3 + 2.5, durationMin: w*3+25,
+                descEN: "6x800m at 10K pace", descRU: "6×800м в темпе 10К")
+            let s4 = TrainingSession(id: w*10+4, dayOfWeek: 7, type: .long,
+                distanceKm: Double(w) * 0.7 + 6.0, durationMin: w*5+40,
+                descEN: "Long slow distance run", descRU: "Длинный медленный бег")
+            return TrainingWeek(id: w, sessions: [s1, s2, s3, s4])
+        }
+        return TrainingPlan(id: "10k", nameEN: "10K PLAN", nameRU: "ПЛАН 10 КМ",
+            descEN: "8-week plan to conquer the 10K distance",
+            descRU: "8-недельный план для забега на 10 км",
+            weeks: weeks, goalDistanceKm: 10, icon: "figure.run.circle.fill", color: Neon.cyan)
+    }()
 
     // MARK: Half Marathon — 12 weeks
-    static let planHalf = TrainingPlan(
-        id: "half", nameEN: "HALF MARATHON", nameRU: "ПОЛУМАРАФОН",
-        descEN: "12-week plan for the 21.1K distance",
-        descRU: "12-недельный план для 21,1 км",
-        weeks: (0..<12).map { w in
-            TrainingWeek(id: w, sessions: [
-                TrainingSession(id: w*10+1, dayOfWeek: 1, type: .easy,
-                    distanceKm: Double(w) * 0.5 + 6.0, durationMin: w*3+35,
-                    descEN: "Recovery easy run", descRU: "Восстановительный лёгкий бег"),
-                TrainingSession(id: w*10+2, dayOfWeek: 3, type: .tempo,
-                    distanceKm: Double(w) * 0.4 + 5.0, durationMin: w*2+30,
-                    descEN: "Tempo run building lactate threshold", descRU: "Темповый — развитие лактатного порога"),
-                TrainingSession(id: w*10+3, dayOfWeek: 5, type: .easy,
-                    distanceKm: Double(w) * 0.3 + 5.0, durationMin: w*2+30,
-                    descEN: "Easy run with strides", descRU: "Лёгкий бег с ускорениями"),
-                TrainingSession(id: w*10+4, dayOfWeek: 7, type: .long,
-                    distanceKm: min(Double(w) * 1.0 + 10.0, 19.0), durationMin: min(w*7+60, 130),
-                    descEN: "Long run — key session of the week", descRU: "Длинный бег — главная тренировка недели")
-            ])
-        },
-        goalDistanceKm: 21.1, icon: "medal.fill", color: Neon.orange
-    )
+    static let planHalf: TrainingPlan = {
+        let weeks: [TrainingWeek] = (0..<12).map { w in
+            let s1 = TrainingSession(id: w*10+1, dayOfWeek: 1, type: .easy,
+                distanceKm: Double(w) * 0.5 + 6.0, durationMin: w*3+35,
+                descEN: "Recovery easy run", descRU: "Восстановительный лёгкий бег")
+            let s2 = TrainingSession(id: w*10+2, dayOfWeek: 3, type: .tempo,
+                distanceKm: Double(w) * 0.4 + 5.0, durationMin: w*2+30,
+                descEN: "Tempo run building lactate threshold", descRU: "Темповый — развитие лактатного порога")
+            let s3 = TrainingSession(id: w*10+3, dayOfWeek: 5, type: .easy,
+                distanceKm: Double(w) * 0.3 + 5.0, durationMin: w*2+30,
+                descEN: "Easy run with strides", descRU: "Лёгкий бег с ускорениями")
+            let s4 = TrainingSession(id: w*10+4, dayOfWeek: 7, type: .long,
+                distanceKm: min(Double(w) * 1.0 + 10.0, 19.0), durationMin: min(w*7+60, 130),
+                descEN: "Long run — key session of the week", descRU: "Длинный бег — главная тренировка недели")
+            return TrainingWeek(id: w, sessions: [s1, s2, s3, s4])
+        }
+        return TrainingPlan(id: "half", nameEN: "HALF MARATHON", nameRU: "ПОЛУМАРАФОН",
+            descEN: "12-week plan for the 21.1K distance",
+            descRU: "12-недельный план для 21,1 км",
+            weeks: weeks, goalDistanceKm: 21.1, icon: "medal.fill", color: Neon.orange)
+    }()
 
     // MARK: Marathon — 16 weeks
-    static let planMarathon = TrainingPlan(
-        id: "marathon", nameEN: "MARATHON", nameRU: "МАРАФОН",
-        descEN: "16-week plan for the full 42.2K marathon",
-        descRU: "16-недельный план для полного марафона 42,2 км",
-        weeks: (0..<16).map { w in
-            TrainingWeek(id: w, sessions: [
-                TrainingSession(id: w*10+1, dayOfWeek: 1, type: .easy,
-                    distanceKm: Double(w) * 0.5 + 8.0, durationMin: w*3+45,
-                    descEN: "Easy recovery run", descRU: "Лёгкий восстановительный бег"),
-                TrainingSession(id: w*10+2, dayOfWeek: 2, type: w < 8 ? .easy : .interval,
-                    distanceKm: Double(w) * 0.3 + 6.0, durationMin: w*2+35,
-                    descEN: w < 8 ? "Easy aerobic" : "Marathon-pace intervals", descRU: w < 8 ? "Лёгкий аэробный" : "Интервалы в марафонском темпе"),
-                TrainingSession(id: w*10+3, dayOfWeek: 4, type: .tempo,
-                    distanceKm: Double(w) * 0.4 + 6.0, durationMin: w*2+35,
-                    descEN: "Tempo run", descRU: "Темповый бег"),
-                TrainingSession(id: w*10+4, dayOfWeek: 6, type: .easy,
-                    distanceKm: Double(w) * 0.3 + 6.0, durationMin: w*2+35,
-                    descEN: "Easy day before long run", descRU: "Лёгкий день перед длинным"),
-                TrainingSession(id: w*10+5, dayOfWeek: 7, type: .long,
-                    distanceKm: min(Double(w) * 1.2 + 14.0, 34.0), durationMin: min(w*8+80, 210),
-                    descEN: "Long run — the cornerstone session", descRU: "Длинный бег — основа плана")
-            ])
-        },
-        goalDistanceKm: 42.2, icon: "trophy.fill", color: Neon.magenta
-    )
+    static let planMarathon: TrainingPlan = {
+        let weeks: [TrainingWeek] = (0..<16).map { w in
+            let s1 = TrainingSession(id: w*10+1, dayOfWeek: 1, type: .easy,
+                distanceKm: Double(w) * 0.5 + 8.0, durationMin: w*3+45,
+                descEN: "Easy recovery run", descRU: "Лёгкий восстановительный бег")
+            let s2type: SessionType = w < 8 ? .easy : .interval
+            let s2descEN = w < 8 ? "Easy aerobic" : "Marathon-pace intervals"
+            let s2descRU = w < 8 ? "Лёгкий аэробный" : "Интервалы в марафонском темпе"
+            let s2 = TrainingSession(id: w*10+2, dayOfWeek: 2, type: s2type,
+                distanceKm: Double(w) * 0.3 + 6.0, durationMin: w*2+35,
+                descEN: s2descEN, descRU: s2descRU)
+            let s3 = TrainingSession(id: w*10+3, dayOfWeek: 4, type: .tempo,
+                distanceKm: Double(w) * 0.4 + 6.0, durationMin: w*2+35,
+                descEN: "Tempo run", descRU: "Темповый бег")
+            let s4 = TrainingSession(id: w*10+4, dayOfWeek: 6, type: .easy,
+                distanceKm: Double(w) * 0.3 + 6.0, durationMin: w*2+35,
+                descEN: "Easy day before long run", descRU: "Лёгкий день перед длинным")
+            let s5 = TrainingSession(id: w*10+5, dayOfWeek: 7, type: .long,
+                distanceKm: min(Double(w) * 1.2 + 14.0, 34.0), durationMin: min(w*8+80, 210),
+                descEN: "Long run — the cornerstone session", descRU: "Длинный бег — основа плана")
+            return TrainingWeek(id: w, sessions: [s1, s2, s3, s4, s5])
+        }
+        return TrainingPlan(
+            id: "marathon", nameEN: "MARATHON", nameRU: "МАРАФОН",
+            descEN: "16-week plan for the full 42.2K marathon",
+            descRU: "16-недельный план для полного марафона 42,2 км",
+            weeks: weeks,
+            goalDistanceKm: 42.2, icon: "trophy.fill", color: Neon.magenta
+        )
+    }()
 }
 
 // MARK: - Training Plan View
 
 struct TrainingPlanView: View {
     @Environment(AppLanguage.self) private var lang
-    @StateObject private var progress = PlanProgress.shared
+    private let progress = PlanProgress.shared
     @State private var selectedPlan: TrainingPlan? = nil
 
     var activePlan: TrainingPlan? {
@@ -373,7 +377,7 @@ struct PlanCard: View {
 struct PlanDetailView: View {
     let plan: TrainingPlan
     @Environment(AppLanguage.self) private var lang
-    @StateObject private var progress = PlanProgress.shared
+    private let progress = PlanProgress.shared
     @Environment(\.dismiss) private var dismiss
     @State private var expandedWeek: Int? = 0
 
@@ -468,7 +472,7 @@ struct WeekRow: View {
     let onToggle: () -> Void
 
     @Environment(AppLanguage.self) private var lang
-    @StateObject private var progress = PlanProgress.shared
+    private let progress = PlanProgress.shared
 
     var body: some View {
         VStack(spacing: 0) {

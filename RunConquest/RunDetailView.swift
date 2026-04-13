@@ -139,8 +139,7 @@ struct RunDetailView: View {
             HStack(spacing: 8) {
                 MetricTile(icon: "figure.run",
                            label: lang.t("DISTANCE", "ДИСТАНЦИЯ"),
-                           value: String(format: "%.2f", (run.total_time_seconds.map { _ in 0 } ?? (parseCoordinates(run.coordinates)?.count.description ?? "0")) != "0"
-                                  ? 0 : (Double(parseCoordinates(run.coordinates)?.count ?? 0) * 2) / 1000),
+                           value: String(format: "%.2f", routeDistance()),
                            unit: "KM", color: .white)
                 // Use distance from route coords count estimate
                 MetricTile(icon: "clock.fill",
@@ -264,6 +263,17 @@ struct RunDetailView: View {
     }
 
     // MARK: - Helpers
+
+    func routeDistance() -> Double {
+        guard let coords = parseCoordinates(run.coordinates), coords.count > 1 else { return 0 }
+        var total = 0.0
+        for i in 1..<coords.count {
+            let a = CLLocation(latitude: coords[i-1].latitude, longitude: coords[i-1].longitude)
+            let b = CLLocation(latitude: coords[i].latitude,   longitude: coords[i].longitude)
+            total += a.distance(from: b)
+        }
+        return total / 1000
+    }
 
     func formatDate(_ dateStr: String) -> String {
         let f = ISO8601DateFormatter()

@@ -182,7 +182,7 @@ struct SquadsView: View {
                         .padding(.horizontal)
                     ForEach(allSquads) { squad in
                         SquadListRow(squad: squad, onJoin: {
-                            Task { await joinSquad(code: squad.code) }
+                            Task { await joinSquad(code: squad.invite_code) }
                         })
                         .padding(.horizontal)
                     }
@@ -222,7 +222,7 @@ struct SquadsView: View {
     }
 
     private func joinSquad(code: String) async {
-        await SupabaseService.shared.joinSquad(playerName: playerName, code: code)
+        _ = await SupabaseService.shared.joinSquad(playerName: playerName, code: code)
         await loadData()
     }
 }
