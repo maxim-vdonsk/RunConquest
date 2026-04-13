@@ -4,6 +4,7 @@ import UserNotifications
 @main
 struct RunConquestApp: App {
     @State private var showSplash = true
+    @State private var appLanguage = AppLanguage()
 
     init() {
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { _, _ in }
@@ -19,6 +20,7 @@ struct RunConquestApp: App {
                         .zIndex(1)
                 }
             }
+            .environment(appLanguage)
             .animation(.easeOut(duration: 0.5), value: showSplash)
             .onAppear {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 3.2) {
@@ -32,6 +34,7 @@ struct RunConquestApp: App {
 // MARK: - Cyberpunk Splash
 
 struct SplashView: View {
+    @Environment(AppLanguage.self) private var lang
     @State private var scanY: CGFloat = -200
     @State private var opacity: Double = 0
     @State private var glowRadius: CGFloat = 6
@@ -75,7 +78,7 @@ struct SplashView: View {
                 NeonDivider(color: Neon.cyan).padding(.horizontal, 60).padding(.vertical, 4)
 
                 if showSub {
-                    Text("> CONQUER YOUR CITY_")
+                    Text(lang.t("> CONQUER YOUR CITY_", "> ЗАВОЮЙ СВОЙ ГОРОД_"))
                         .font(.system(size: 12, design: .monospaced))
                         .foregroundColor(Neon.cyan.opacity(0.7))
                         .tracking(2)
@@ -83,9 +86,9 @@ struct SplashView: View {
                 }
                 if showStatus {
                     VStack(spacing: 4) {
-                        StatusLine(text: "LOCATION MODULE", delay: 0)
-                        StatusLine(text: "NETWORK LINK", delay: 0.3)
-                        StatusLine(text: "COMBAT SYSTEM", delay: 0.6)
+                        StatusLine(text: lang.t("LOCATION MODULE", "МОДУЛЬ ГЕОЛОКАЦИИ"), delay: 0)
+                        StatusLine(text: lang.t("NETWORK LINK", "СЕТЕВОЕ СОЕДИНЕНИЕ"), delay: 0.3)
+                        StatusLine(text: lang.t("COMBAT SYSTEM", "БОЕВАЯ СИСТЕМА"), delay: 0.6)
                     }
                     .padding(.top, 8)
                     .transition(.opacity)

@@ -7,6 +7,8 @@ struct ProfileView: View {
     let color: String
     @Binding var savedName: String
     @Binding var savedColor: String
+
+    @Environment(AppLanguage.self) private var lang
     @State private var player: PlayerRecord? = nil
     @State private var myRuns: [RunRecord] = []
     @State private var isLoading = true
@@ -15,16 +17,17 @@ struct ProfileView: View {
     @Environment(\.dismiss) var dismiss
 
     let colors = ["orange", "blue", "green", "red", "purple"]
-    let colorLabels = ["orange": "AMBER", "blue": "CYAN", "green": "MATRIX", "red": "CRIMSON", "purple": "VIOLET"]
+    let colorLabelsEN = ["orange": "AMBER",   "blue": "CYAN",  "green": "MATRIX", "red": "CRIMSON", "purple": "VIOLET"]
+    let colorLabelsRU = ["orange": "ЯНТАРЬ", "blue": "ЦИАН", "green": "МАТРИЦА", "red": "БАГРЯНЕЦ", "purple": "ФИОЛЕТ"]
 
     var accent: Color { Neon.colorMap[savedColor] ?? Neon.cyan }
 
     var levelData: (String, Color) {
         switch player?.total_area ?? 0 {
-        case 0..<10000:    return ("ROOKIE",    .gray)
-        case 10000..<50000: return ("FIGHTER",  Neon.cyan)
-        case 50000..<200000:return ("WARRIOR",  Neon.orange)
-        default:            return ("CONQUEROR",Neon.magenta)
+        case 0..<10000:    return (lang.t("ROOKIE",    "НОВИЧОК"),    .gray)
+        case 10000..<50000: return (lang.t("FIGHTER",  "БОЕЦ"),       Neon.cyan)
+        case 50000..<200000:return (lang.t("WARRIOR",  "ВОИН"),       Neon.orange)
+        default:            return (lang.t("CONQUEROR","ЗАВОЕВАТЕЛЬ"),Neon.magenta)
         }
     }
 
@@ -36,7 +39,7 @@ struct ProfileView: View {
             if isLoading {
                 VStack(spacing: 12) {
                     ProgressView().tint(Neon.cyan)
-                    Text("LOADING PROFILE...")
+                    Text(lang.t("LOADING PROFILE...", "ЗАГРУЗКА ПРОФИЛЯ..."))
                         .font(.system(size: 10, design: .monospaced))
                         .foregroundColor(Neon.cyan.opacity(0.5))
                         .tracking(3)
@@ -64,7 +67,7 @@ struct ProfileView: View {
                         // Name
                         if editingName {
                             HStack {
-                                TextField("CALLSIGN", text: $tempName)
+                                TextField(lang.t("CALLSIGN", "ПОЗЫВНОЙ"), text: $tempName)
                                     .font(.system(size: 16, weight: .bold, design: .monospaced))
                                     .foregroundColor(.white)
                                     .multilineTextAlignment(.center)
@@ -108,20 +111,55 @@ struct ProfileView: View {
                             .overlay(RoundedRectangle(cornerRadius: 3).stroke(levelData.1.opacity(0.4), lineWidth: 1))
                             .shadow(color: levelData.1.opacity(0.4), radius: 6)
 
+                        NeonDivider(color: accent).padding(.horizontal, 20)
+
+                        // Language selector
+                        VStack(spacing: 8) {
+                            NeonLabel(text: lang.t("> LANGUAGE:", "> ЯЗЫК:"), color: accent)
+                            HStack(spacing: 0) {
+                                ForEach(["ru", "en"], id: \.self) { code in
+                                    let isSelected = lang.code == code
+                                    let label = code == "ru" ? "RU  РУССКИЙ" : "EN  ENGLISH"
+                                    Button(action: { lang.set(code) }) {
+                                        Text(label)
+                                            .font(.system(size: 11, weight: .bold, design: .monospaced))
+                                            .foregroundColor(isSelected ? Neon.bg : accent.opacity(0.5))
+                                            .tracking(1)
+                                            .frame(maxWidth: .infinity)
+                                            .padding(.vertical, 10)
+                                            .background(isSelected ? accent : accent.opacity(0.07))
+                                            .cornerRadius(3)
+                                    }
+                                    .animation(.easeInOut(duration: 0.2), value: lang.code)
+                                    if code == "ru" {
+                                        Rectangle()
+                                            .fill(accent.opacity(0.2))
+                                            .frame(width: 1)
+                                            .padding(.vertical, 4)
+                                    }
+                                }
+                            }
+                            .overlay(RoundedRectangle(cornerRadius: 3).stroke(accent.opacity(0.3), lineWidth: 1))
+                        }
+                        .padding(.horizontal)
+
+                        NeonDivider(color: accent).padding(.horizontal, 20)
+
                         // Color selector
                         VStack(spacing: 8) {
-                            NeonLabel(text: "> FACTION COLOR:", color: accent)
+                            NeonLabel(text: lang.t("> FACTION COLOR:", "> ЦВЕТ ФРАКЦИИ:"), color: accent)
                             HStack(spacing: 0) {
                                 ForEach(colors, id: \.self) { c in
                                     let col = Neon.colorMap[c] ?? Neon.cyan
                                     let isSelected = savedColor == c
+                                    let labels = lang.code == "ru" ? colorLabelsRU : colorLabelsEN
                                     VStack(spacing: 4) {
                                         Circle().fill(col).frame(width: 32, height: 32)
                                             .shadow(color: isSelected ? col : .clear, radius: 10)
                                             .overlay(Circle().stroke(Color.white.opacity(isSelected ? 1 : 0), lineWidth: 2))
                                             .scaleEffect(isSelected ? 1.2 : 1.0)
                                             .animation(.spring(response: 0.25), value: savedColor)
-                                        Text(colorLabels[c] ?? "")
+                                        Text(labels[c] ?? "")
                                             .font(.system(size: 6, design: .monospaced))
                                             .foregroundColor(isSelected ? col : .gray.opacity(0.4))
                                     }
@@ -138,16 +176,16 @@ struct ProfileView: View {
 
                         // Stats grid
                         LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
-                            CyberStatCard(icon: "figure.run",  label: "RUNS",       value: "\(player?.total_runs ?? 0)")
-                            CyberStatCard(icon: "map.fill",    label: "TERRITORY",  value: String(format: "%.0f M²", player?.total_area ?? 0))
-                            CyberStatCard(icon: "road.lanes",  label: "DISTANCE",   value: String(format: "%.1f KM", (player?.total_distance ?? 0) / 1000))
-                            CyberStatCard(icon: "bolt.fill",   label: "ATTACKS",    value: "\(player?.total_attacks ?? 0)", color: Neon.red)
+                            CyberStatCard(icon: "figure.run",  label: lang.t("RUNS",      "ЗАБЕГОВ"),    value: "\(player?.total_runs ?? 0)")
+                            CyberStatCard(icon: "map.fill",    label: lang.t("TERRITORY", "ТЕРРИТОРИЯ"), value: String(format: "%.0f M²", player?.total_area ?? 0))
+                            CyberStatCard(icon: "road.lanes",  label: lang.t("DISTANCE",  "ДИСТАНЦИЯ"),  value: String(format: "%.1f KM", (player?.total_distance ?? 0) / 1000))
+                            CyberStatCard(icon: "bolt.fill",   label: lang.t("ATTACKS",   "АТАК"),       value: "\(player?.total_attacks ?? 0)", color: Neon.red)
                         }
                         .padding(.horizontal)
 
                         // Run history
                         VStack(alignment: .leading, spacing: 6) {
-                            NeonLabel(text: "> RUN HISTORY:", color: accent).padding(.horizontal)
+                            NeonLabel(text: lang.t("> RUN HISTORY:", "> ИСТОРИЯ ЗАБЕГОВ:"), color: accent).padding(.horizontal)
                             ForEach(myRuns) { run in
                                 HStack {
                                     Circle().fill(Neon.colorMap[run.color] ?? Neon.cyan)
@@ -157,7 +195,7 @@ struct ProfileView: View {
                                         .font(.system(size: 10, design: .monospaced))
                                         .foregroundColor(.gray.opacity(0.6))
                                     Spacer()
-                                    Text(run.is_active == true ? "ACTIVE" : "CAPTURED")
+                                    Text(run.is_active == true ? lang.t("ACTIVE", "АКТИВНЫЙ") : lang.t("CAPTURED", "ЗАХВАЧЕН"))
                                         .font(.system(size: 9, weight: .bold, design: .monospaced))
                                         .foregroundColor(run.is_active == true ? Neon.green : .gray.opacity(0.4))
                                         .shadow(color: run.is_active == true ? Neon.green.opacity(0.5) : .clear, radius: 3)
@@ -187,7 +225,9 @@ struct ProfileView: View {
         let f = ISO8601DateFormatter()
         f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
         guard let date = f.date(from: dateStr) else { return dateStr }
-        let d = DateFormatter(); d.dateFormat = "dd MMM, HH:mm"; d.locale = Locale(identifier: "ru_RU")
+        let d = DateFormatter()
+        d.dateFormat = "dd MMM, HH:mm"
+        d.locale = Locale(identifier: lang.code == "ru" ? "ru_RU" : "en_US")
         return d.string(from: date).uppercased()
     }
 }

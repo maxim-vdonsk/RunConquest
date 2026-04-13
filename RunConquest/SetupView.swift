@@ -7,8 +7,11 @@ struct SetupView: View {
     @Binding var selectedColor: String
     let onStart: () -> Void
 
+    @Environment(AppLanguage.self) private var lang
+
     let colors = ["orange", "blue", "green", "red", "purple"]
-    let colorLabels = ["orange": "AMBER", "blue": "CYAN", "green": "MATRIX", "red": "CRIMSON", "purple": "VIOLET"]
+    let colorLabelsEN = ["orange": "AMBER", "blue": "CYAN", "green": "MATRIX", "red": "CRIMSON", "purple": "VIOLET"]
+    let colorLabelsRU = ["orange": "ЯНТАРЬ", "blue": "ЦИАН", "green": "МАТРИЦА", "red": "БАГРЯНЕЦ", "purple": "ФИОЛЕТ"]
 
     @State private var appeared = false
     @State private var cursor = true
@@ -24,8 +27,8 @@ struct SetupView: View {
             VStack(spacing: 28) {
                 // Header
                 VStack(spacing: 6) {
-                    NeonLabel(text: "// SYSTEM INIT //", color: accent)
-                    Text("PLAYER REGISTRATION")
+                    NeonLabel(text: lang.t("// SYSTEM INIT //", "// ИНИЦИАЛИЗАЦИЯ //"), color: accent)
+                    Text(lang.t("PLAYER REGISTRATION", "РЕГИСТРАЦИЯ ИГРОКА"))
                         .font(.system(size: 22, weight: .black, design: .monospaced))
                         .foregroundColor(.white)
                         .tracking(2)
@@ -36,7 +39,7 @@ struct SetupView: View {
 
                 // Callsign input
                 VStack(alignment: .leading, spacing: 8) {
-                    NeonLabel(text: "> ENTER CALLSIGN:", color: accent)
+                    NeonLabel(text: lang.t("> ENTER CALLSIGN:", "> ВВЕДИ ПОЗЫВНОЙ:"), color: accent)
                     HStack {
                         TextField("", text: $playerName)
                             .font(.system(size: 18, weight: .semibold, design: .monospaced))
@@ -62,11 +65,12 @@ struct SetupView: View {
 
                 // Faction color
                 VStack(alignment: .leading, spacing: 12) {
-                    NeonLabel(text: "> SELECT FACTION:", color: accent).padding(.horizontal)
+                    NeonLabel(text: lang.t("> SELECT FACTION:", "> ВЫБЕРИ ФРАКЦИЮ:"), color: accent).padding(.horizontal)
                     HStack(spacing: 0) {
                         ForEach(colors, id: \.self) { c in
                             let col = Neon.colorMap[c] ?? Neon.cyan
                             let isSelected = selectedColor == c
+                            let labels = lang.code == "ru" ? colorLabelsRU : colorLabelsEN
                             VStack(spacing: 6) {
                                 Circle()
                                     .fill(col)
@@ -75,7 +79,7 @@ struct SetupView: View {
                                     .overlay(Circle().stroke(Color.white.opacity(isSelected ? 1 : 0), lineWidth: 2))
                                     .scaleEffect(isSelected ? 1.2 : 1.0)
                                     .animation(.spring(response: 0.25), value: selectedColor)
-                                Text(colorLabels[c] ?? "")
+                                Text(labels[c] ?? "")
                                     .font(.system(size: 7, design: .monospaced))
                                     .foregroundColor(isSelected ? col : .gray.opacity(0.5))
                                     .shadow(color: isSelected ? col : .clear, radius: 3)
@@ -90,7 +94,9 @@ struct SetupView: View {
 
                 // Deploy button
                 Button(action: onStart) {
-                    Text(playerName.isEmpty ? "[ ENTER CALLSIGN ]" : "[ DEPLOY  ▶ ]")
+                    Text(playerName.isEmpty
+                         ? lang.t("[ ENTER CALLSIGN ]", "[ ВВЕДИ ПОЗЫВНОЙ ]")
+                         : lang.t("[ DEPLOY  ▶ ]", "[ НАЧАТЬ  ▶ ]"))
                         .font(.system(size: 15, weight: .bold, design: .monospaced))
                         .foregroundColor(playerName.isEmpty ? .gray : Neon.bg)
                         .tracking(2)

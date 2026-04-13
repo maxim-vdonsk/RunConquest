@@ -7,6 +7,8 @@ struct LeaderboardView: View {
     @State private var isLoading = true
     let currentPlayer: String
 
+    @Environment(AppLanguage.self) private var lang
+
     var body: some View {
         ZStack {
             Neon.bg.ignoresSafeArea()
@@ -15,8 +17,8 @@ struct LeaderboardView: View {
             VStack(spacing: 0) {
                 // Header
                 VStack(spacing: 6) {
-                    NeonLabel(text: "// GLOBAL NETWORK //")
-                    Text("RANKINGS")
+                    NeonLabel(text: lang.t("// GLOBAL NETWORK //", "// ГЛОБАЛЬНАЯ СЕТЬ //"))
+                    Text(lang.t("RANKINGS", "РЕЙТИНГ"))
                         .font(.system(size: 26, weight: .black, design: .monospaced))
                         .foregroundColor(.white)
                         .tracking(6)
@@ -30,7 +32,7 @@ struct LeaderboardView: View {
                     Spacer()
                     VStack(spacing: 12) {
                         ProgressView().tint(Neon.cyan)
-                        Text("SYNCING DATA...")
+                        Text(lang.t("SYNCING DATA...", "ЗАГРУЗКА ДАННЫХ..."))
                             .font(.system(size: 10, design: .monospaced))
                             .foregroundColor(Neon.cyan.opacity(0.5))
                             .tracking(3)
@@ -57,6 +59,8 @@ struct RankRow: View {
     let index: Int
     let player: PlayerRecord
     let isMe: Bool
+
+    @Environment(AppLanguage.self) private var lang
 
     var rankColor: Color {
         switch index {
@@ -89,7 +93,7 @@ struct RankRow: View {
                     .font(.system(size: 13, weight: .bold, design: .monospaced))
                     .foregroundColor(isMe ? Neon.cyan : .white)
                     .shadow(color: isMe ? Neon.cyan.opacity(0.6) : .clear, radius: 4)
-                Text("\(player.total_runs) RUNS · \(player.total_attacks) ATTACKS")
+                Text("\(player.total_runs) \(lang.t("RUNS", "ЗАБ.")) · \(player.total_attacks) \(lang.t("ATTACKS", "АТА."))")
                     .font(.system(size: 9, design: .monospaced))
                     .foregroundColor(.gray.opacity(0.5))
                     .tracking(1)

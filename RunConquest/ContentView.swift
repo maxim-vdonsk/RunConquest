@@ -31,6 +31,8 @@ struct ContentView: View {
     @AppStorage("playerName") private var savedName: String = ""
     @AppStorage("playerColor") private var savedColor: String = "orange"
 
+    @Environment(AppLanguage.self) private var lang
+
     @State private var showSetup = false
     @State private var showResults = false
     @State private var showProfile = false
@@ -120,10 +122,10 @@ struct ContentView: View {
                                 hudDivider
                                 AnimatedHUDStat(value: String(format: "%.0f", locationManager.currentSpeed), unit: "KM/H", color: speedColor)
                                 hudDivider
-                                AnimatedHUDStat(value: "\(points)", unit: "PTS", color: accent)
+                                AnimatedHUDStat(value: "\(points)", unit: lang.t("PTS", "ОЧК"), color: accent)
                                 if attackedCount > 0 {
                                     hudDivider
-                                    AnimatedHUDStat(value: "⚔\(attackedCount)", unit: "HITS", color: Neon.red)
+                                    AnimatedHUDStat(value: "⚔\(attackedCount)", unit: lang.t("HITS", "УДА"), color: Neon.red)
                                 }
                             }
                             .padding(.horizontal, 12).padding(.vertical, 8)
@@ -173,13 +175,13 @@ struct ContentView: View {
                             HStack(spacing: 10) {
                                 if isSaving {
                                     ProgressView().tint(.white).scaleEffect(0.8)
-                                    Text("SYNCING...")
+                                    Text(lang.t("SYNCING...", "СИНХРОНИЗАЦИЯ..."))
                                         .font(.system(size: 14, weight: .bold, design: .monospaced))
                                         .foregroundColor(.white).tracking(2)
                                 } else {
                                     Image(systemName: "stop.fill")
                                         .foregroundColor(.white)
-                                    Text("[ TERMINATE RUN ]")
+                                    Text(lang.t("[ TERMINATE RUN ]", "[ ЗАВЕРШИТЬ ЗАБЕГ ]"))
                                         .font(.system(size: 14, weight: .bold, design: .monospaced))
                                         .foregroundColor(.white).tracking(2)
                                 }
@@ -241,13 +243,14 @@ struct ContentView: View {
             if !attackedIds.contains(id) {
                 attackedIds.insert(id); attackedCount += 1
                 if let run = realtimeManager.otherRuns.first(where: { $0.id == id }) {
-                    attackAlert = "ATTACKING ZONE: \(run.player_name)"
+                    let alertText = lang.t("ATTACKING ZONE: \(run.player_name)", "ЗАХВАТ ЗОНЫ: \(run.player_name)")
+                    attackAlert = alertText
                     showAttackFlash = true
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { showAttackFlash = false }
                     DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) { attackAlert = nil }
                     let content = UNMutableNotificationContent()
-                    content.title = "⚔ ATTACK"
-                    content.body = "Capturing territory of \(run.player_name)"
+                    content.title = lang.t("⚔ ATTACK", "⚔ АТАКА")
+                    content.body = lang.t("Capturing territory of \(run.player_name)", "Захват территории \(run.player_name)")
                     content.sound = .default
                     UNUserNotificationCenter.current().add(UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: nil))
                 }

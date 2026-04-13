@@ -11,17 +11,18 @@ struct ResultsView: View {
     let attackedCount: Int
     let onRestart: () -> Void
 
+    @Environment(AppLanguage.self) private var lang
+
     @State private var appeared = false
-    @State private var lineIndex = 0
 
     var accent: Color { Neon.colorMap[color] ?? Neon.cyan }
 
     var levelData: (String, Color) {
         switch points {
-        case 0..<100:   return ("ROOKIE",      .gray)
-        case 100..<500: return ("FIGHTER",     Neon.cyan)
-        case 500..<1000:return ("WARRIOR",     Neon.orange)
-        default:        return ("CONQUEROR",   Neon.magenta)
+        case 0..<100:   return (lang.t("ROOKIE",    "НОВИЧОК"),    .gray)
+        case 100..<500: return (lang.t("FIGHTER",   "БОЕЦ"),       Neon.cyan)
+        case 500..<1000:return (lang.t("WARRIOR",   "ВОИН"),       Neon.orange)
+        default:        return (lang.t("CONQUEROR", "ЗАВОЕВАТЕЛЬ"),Neon.magenta)
         }
     }
 
@@ -40,8 +41,8 @@ struct ResultsView: View {
             VStack(spacing: 20) {
                 // Header
                 VStack(spacing: 6) {
-                    NeonLabel(text: "// MISSION REPORT //", color: accent)
-                    Text("RUN COMPLETE")
+                    NeonLabel(text: lang.t("// MISSION REPORT //", "// ОТЧЁТ МИССИИ //"), color: accent)
+                    Text(lang.t("RUN COMPLETE", "ЗАБЕГ ЗАВЕРШЁН"))
                         .font(.system(size: 24, weight: .black, design: .monospaced))
                         .foregroundColor(.white)
                         .tracking(4)
@@ -57,7 +58,7 @@ struct ResultsView: View {
                         .foregroundColor(levelData.1)
                         .tracking(6)
                         .shadow(color: levelData.1, radius: 12)
-                    Text("RANK ACHIEVED")
+                    Text(lang.t("RANK ACHIEVED", "РАНГ ПОЛУЧЕН"))
                         .font(.system(size: 9, design: .monospaced))
                         .foregroundColor(levelData.1.opacity(0.6))
                         .tracking(4)
@@ -73,12 +74,12 @@ struct ResultsView: View {
                 VStack(spacing: 0) {
                     terminalHeader
                     VStack(spacing: 1) {
-                        TerminalRow(key: "OPERATOR",  value: playerName,                              color: accent)
-                        TerminalRow(key: "DISTANCE",  value: String(format: "%.2f KM", distance / 1000), color: .white)
-                        TerminalRow(key: "TERRITORY", value: String(format: "%.0f M²", area),         color: .white)
-                        TerminalRow(key: "SCORE",     value: "\(points) PTS",                         color: Neon.green)
+                        TerminalRow(key: lang.t("OPERATOR",  "ИГРОК"),      value: playerName,                                 color: accent)
+                        TerminalRow(key: lang.t("DISTANCE",  "ДИСТАНЦИЯ"),  value: String(format: "%.2f KM", distance / 1000), color: .white)
+                        TerminalRow(key: lang.t("TERRITORY", "ТЕРРИТОРИЯ"), value: String(format: "%.0f M²", area),            color: .white)
+                        TerminalRow(key: lang.t("SCORE",     "ОЧКИ"),       value: "\(points) \(lang.t("PTS", "ОЧК"))",        color: Neon.green)
                         if attackedCount > 0 {
-                            TerminalRow(key: "ZONES HIT", value: "⚔ \(attackedCount)",               color: Neon.red)
+                            TerminalRow(key: lang.t("ZONES HIT", "ЗОН ЗАХВАЧЕНО"), value: "⚔ \(attackedCount)", color: Neon.red)
                         }
                     }
                 }
@@ -87,7 +88,7 @@ struct ResultsView: View {
 
                 // Restart button
                 Button(action: onRestart) {
-                    Text("[ NEW MISSION  ▶ ]")
+                    Text(lang.t("[ NEW MISSION  ▶ ]", "[ НОВАЯ МИССИЯ  ▶ ]"))
                         .font(.system(size: 14, weight: .bold, design: .monospaced))
                         .foregroundColor(Neon.bg)
                         .tracking(2)
@@ -108,12 +109,12 @@ struct ResultsView: View {
 
     private var terminalHeader: some View {
         HStack {
-            Text("// STATS LOG")
+            Text(lang.t("// STATS LOG", "// СТАТИСТИКА"))
                 .font(.system(size: 9, design: .monospaced))
                 .foregroundColor(accent.opacity(0.5))
                 .tracking(3)
             Spacer()
-            Text("[ END ]")
+            Text(lang.t("[ END ]", "[ КОНЕЦ ]"))
                 .font(.system(size: 9, design: .monospaced))
                 .foregroundColor(accent.opacity(0.4))
         }
@@ -133,7 +134,7 @@ struct TerminalRow: View {
             Text(key)
                 .font(.system(size: 11, design: .monospaced))
                 .foregroundColor(.gray.opacity(0.6))
-                .frame(width: 100, alignment: .leading)
+                .frame(width: 120, alignment: .leading)
             Text("//")
                 .font(.system(size: 10, design: .monospaced))
                 .foregroundColor(.gray.opacity(0.3))
