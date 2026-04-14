@@ -102,8 +102,8 @@ class SupabaseService {
               let response = try? JSONDecoder().decode(SupabaseAuthResponse.self, from: data) else {
             return .failure(AuthError(message: "Network error"))
         }
-        if let errMsg = response.errorMessage { return .failure(errMsg) }
-        guard let user = response.authUser else { return .failure("Invalid credentials") }
+        if let errMsg = response.errorMessage { return .failure(AuthError(message: errMsg)) }
+        guard let user = response.authUser else { return .failure(AuthError(message: "Invalid credentials")) }
         return .success(user)
     }
 
