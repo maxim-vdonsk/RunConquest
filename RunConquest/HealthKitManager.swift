@@ -147,7 +147,7 @@ class HealthKitManager {
         let predicate = HKQuery.predicateForSamples(withStart: start, end: Date())
         let sort = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: false)
         let query = HKSampleQuery(sampleType: type, predicate: predicate, limit: 1, sortDescriptors: [sort]) { [weak self] _, samples, _ in
-            self?.applyHeartRateSamples(samples)
+            Task { @MainActor [weak self] in self?.applyHeartRateSamples(samples) }
         }
         store.execute(query)
     }
