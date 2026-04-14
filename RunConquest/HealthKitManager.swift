@@ -10,6 +10,7 @@ class HealthKitManager {
     private var workoutBuilder: HKWorkoutBuilder?
     private var heartRateQuery: HKAnchoredObjectQuery?
     private var pollTimer: Timer?
+    private var lastHRUpdate: Date = .distantPast
 
     var isAvailable: Bool { HKHealthStore.isHealthDataAvailable() }
     var isAuthorized = false
@@ -115,9 +116,16 @@ class HealthKitManager {
         store.execute(query)
         heartRateQuery = query
 
-        // Калории обновляем таймером — они не критичны для реалтайма
+        // Резервный поллинг: Watch иногда задерживает запись HR в HealthKit.
+        // Если HKAnchoredObjectQuery не отдал новое значение за 6 секунд — запрашиваем вручную.
         pollTimer = Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { [weak self] _ in
-            Task { @MainActor [weak self] in self?.queryCalories() }
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                if Date().timeIntervalSince(self.lastHRUpdate) > 6 {
+                    self.queryLatestHeartRate()
+                }
+                self.queryCalories()
+            }
         }
     }
 
@@ -126,7 +134,22 @@ class HealthKitManager {
             .sorted(by: { $0.startDate < $1.startDate })
             .last else { return }
         let bpm = Int(sample.quantity.doubleValue(for: HKUnit(from: "count/min")))
-        Task { @MainActor [weak self] in self?.heartRate = bpm }
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            self.heartRate = bpm
+            self.lastHRUpdate = Date()
+        }
+    }
+
+    private func queryLatestHeartRate() {
+        guard let start = workoutStartDate else { return }
+        let type = HKQuantityType(.heartRate)
+        let predicate = HKQuery.predicateForSamples(withStart: start, end: Date())
+        let sort = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: false)
+        let query = HKSampleQuery(sampleType: type, predicate: predicate, limit: 1, sortDescriptors: [sort]) { [weak self] _, samples, _ in
+            self?.applyHeartRateSamples(samples)
+        }
+        store.execute(query)
     }
 
     private func stopHeartRatePolling() {

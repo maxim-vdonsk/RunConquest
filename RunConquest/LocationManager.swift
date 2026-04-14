@@ -52,6 +52,9 @@ class LocationManager: NSObject, CLLocationManagerDelegate {
         manager.delegate = self
         manager.desiredAccuracy = kCLLocationAccuracyBest
         manager.activityType = .fitness
+        manager.pausesLocationUpdatesAutomatically = false   // не паузить при остановке
+        manager.allowsBackgroundLocationUpdates = true       // GPS работает при заблокированном экране
+        manager.showsBackgroundLocationIndicator = true
         manager.requestWhenInUseAuthorization()
         manager.startUpdatingLocation()
     }
@@ -129,20 +132,36 @@ class LocationManager: NSObject, CLLocationManagerDelegate {
     nonisolated func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         guard let location = locations.last else { return }
         Task { @MainActor in
+            // Обновляем центр карты всегда (если сигнал приемлемый)
+            guard location.horizontalAccuracy >= 0,
+                  location.horizontalAccuracy < 40 else { return }
+
             self.region = MKCoordinateRegion(
                 center: location.coordinate,
                 span: MKCoordinateSpan(latitudeDelta: 0.005, longitudeDelta: 0.005)
             )
             guard self.isTracking else { return }
 
-            self.routeCoordinates.append(location.coordinate)
+            // Фильтр устаревших точек: после разблокировки iOS сбрасывает буфер —
+            // отбрасываем точки старше 3 секунд
+            guard abs(location.timestamp.timeIntervalSinceNow) < 3 else { return }
+
+            // Фильтр точности: принимаем только сигналы лучше 20м
+            guard location.horizontalAccuracy < 20 else { return }
 
             if let last = self.lastLocation {
                 let delta = location.distance(from: last)
-                if delta < 50 {  // фильтр GPS-прыжков
-                    self.distanceMeters += delta
-                }
+                let dt = location.timestamp.timeIntervalSince(last.timestamp)
+
+                // Фильтр скорости: > 12 м/с (43 км/ч) — GPS-прыжок, игнорируем точку
+                if dt > 0, delta / dt > 12 { return }
+
+                // Засчитываем дистанцию только для реалистичных шагов
+                if delta < 30 { self.distanceMeters += delta }
             }
+
+            // Добавляем точку в маршрут только после всех проверок
+            self.routeCoordinates.append(location.coordinate)
 
             let speedMs = max(0, location.speed)
             self.currentSpeed = speedMs * 3.6
