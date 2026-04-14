@@ -8,14 +8,20 @@ struct RunConquestApp: App {
     @State private var showSplash = true
     @State private var appLanguage = AppLanguage()
     @AppStorage("hasSeenOnboarding") private var hasSeenOnboarding: Bool = false
+    @AppStorage("playerName")        private var playerName: String = ""
 
     var body: some Scene {
         WindowGroup {
             ZStack {
-                if hasSeenOnboarding {
-                    MainTabView()
-                } else {
+                if !hasSeenOnboarding {
+                    // Первый запуск — онбординг
                     OnboardingView()
+                } else if playerName.isEmpty {
+                    // Онбординг пройден, но нет аккаунта — авторизация
+                    AuthView()
+                } else {
+                    // Авторизован — основной экран
+                    MainTabView()
                 }
                 if showSplash {
                     SplashView()
@@ -26,6 +32,7 @@ struct RunConquestApp: App {
             .environment(appLanguage)
             .animation(.easeOut(duration: 0.5), value: showSplash)
             .animation(.easeInOut(duration: 0.4), value: hasSeenOnboarding)
+            .animation(.easeInOut(duration: 0.4), value: playerName.isEmpty)
             .onAppear {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 3.2) {
                     showSplash = false

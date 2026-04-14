@@ -35,6 +35,14 @@ struct PlayerRecord: Codable, Identifiable {
     var device_token: String?
     var badge_ids: String?
     var squad_name: String?
+    var email: String?
+}
+
+// MARK: - Auth
+
+struct AuthUser: Decodable {
+    let id: String
+    let email: String?
 }
 
 // MARK: - Run Split

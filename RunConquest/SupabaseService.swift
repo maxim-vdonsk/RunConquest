@@ -36,6 +36,96 @@ class SupabaseService {
         return String(bytes.map { chars[Int($0) % chars.count] })
     }
 
+    // MARK: - Auth Requests
+
+    private struct SupabaseAuthResponse: Decodable {
+        let access_token: String?
+        let user: SupabaseAuthUser?
+        // При включённом email-подтверждении поля user приходят на верхнем уровне
+        let id: String?
+        let email: String?
+        // Ошибки
+        let error: String?
+        let error_description: String?
+        let msg: String?
+
+        var authUser: AuthUser? {
+            if let u = user { return AuthUser(id: u.id, email: u.email) }
+            if let id = id  { return AuthUser(id: id,  email: email) }
+            return nil
+        }
+        var errorMessage: String? { error_description ?? error ?? msg }
+    }
+
+    private struct SupabaseAuthUser: Decodable {
+        let id: String
+        let email: String?
+    }
+
+    private func makeAuthRequest(_ path: String, body: Data?) -> URLRequest? {
+        guard let url = URL(string: SUPABASE_URL + path) else { return nil }
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue(SUPABASE_KEY, forHTTPHeaderField: "apikey")
+        request.httpBody = body
+        return request
+    }
+
+    func signUp(email: String, password: String) async -> Result<(user: AuthUser, needsConfirmation: Bool), String> {
+        let body = ["email": email, "password": password]
+        guard let bodyData = try? JSONSerialization.data(withJSONObject: body),
+              let request = makeAuthRequest("/auth/v1/signup", body: bodyData) else {
+            return .failure("Request error")
+        }
+        guard let (data, _) = try? await URLSession.shared.data(for: request),
+              let response = try? JSONDecoder().decode(SupabaseAuthResponse.self, from: data) else {
+            return .failure("Network error")
+        }
+        if let errMsg = response.errorMessage { return .failure(errMsg) }
+        guard let user = response.authUser else { return .failure("Unknown error") }
+        let needsConfirmation = response.access_token == nil
+        return .success((user: user, needsConfirmation: needsConfirmation))
+    }
+
+    func signIn(email: String, password: String) async -> Result<AuthUser, String> {
+        let body = ["email": email, "password": password]
+        guard let bodyData = try? JSONSerialization.data(withJSONObject: body),
+              let request = makeAuthRequest("/auth/v1/token?grant_type=password", body: bodyData) else {
+            return .failure("Request error")
+        }
+        guard let (data, _) = try? await URLSession.shared.data(for: request),
+              let response = try? JSONDecoder().decode(SupabaseAuthResponse.self, from: data) else {
+            return .failure("Network error")
+        }
+        if let errMsg = response.errorMessage { return .failure(errMsg) }
+        guard let user = response.authUser else { return .failure("Invalid credentials") }
+        return .success(user)
+    }
+
+    func fetchPlayerByEmail(_ email: String) async -> PlayerRecord? {
+        let encoded = sanitize(email).addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? email
+        guard let request = makeRequest("/rest/v1/players?email=eq.\(encoded)") else { return nil }
+        guard let (data, _) = try? await URLSession.shared.data(for: request),
+              let records = try? JSONDecoder().decode([PlayerRecord].self, from: data) else { return nil }
+        return records.first
+    }
+
+    func createPlayerProfile(name: String, email: String, color: String) async {
+        let body: [String: Any] = [
+            "name": sanitize(name),
+            "email": sanitize(email),
+            "total_distance": 0.0,
+            "total_area": 0.0,
+            "total_attacks": 0,
+            "total_runs": 0,
+            "total_points": 0
+        ]
+        guard let bodyData = try? JSONSerialization.data(withJSONObject: body),
+              let request = makeRequest("/rest/v1/players", method: "POST", body: bodyData) else { return }
+        _ = try? await URLSession.shared.data(for: request)
+    }
+
     private func makeRequest(_ path: String, method: String = "GET", body: Data? = nil) -> URLRequest? {
         guard let url = URL(string: SUPABASE_URL + path) else { return nil }
         var request = URLRequest(url: url)
