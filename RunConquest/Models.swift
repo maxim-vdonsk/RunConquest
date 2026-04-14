@@ -36,6 +36,7 @@ struct PlayerRecord: Codable, Identifiable {
     var badge_ids: String?
     var squad_name: String?
     var email: String?
+    var color: String?
 }
 
 // MARK: - Auth
