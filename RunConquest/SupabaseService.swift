@@ -262,6 +262,13 @@ class SupabaseService {
         }
     }
 
+    func updatePlayerColor(playerName: String, color: String) async {
+        let encoded = sanitize(playerName).addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? playerName
+        guard let bodyData = try? JSONSerialization.data(withJSONObject: ["color": color]),
+              let request = makeRequest("/rest/v1/players?name=eq.\(encoded)", method: "PATCH", body: bodyData) else { return }
+        _ = try? await URLSession.shared.data(for: request)
+    }
+
     func updateDeviceToken(playerName: String, token: String) async {
         let encoded = playerName.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? playerName
         guard let bodyData = try? JSONSerialization.data(withJSONObject: ["device_token": token]),

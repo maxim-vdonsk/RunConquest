@@ -244,6 +244,11 @@ struct AuthView: View {
             let lookupEmail = user.email ?? trimEmail
             if let player = await SupabaseService.shared.fetchPlayerByEmail(lookupEmail) {
                 savedName = player.name
+                // Восстанавливаем цвет фракции из профиля
+                if let c = player.color, !c.isEmpty {
+                    savedColor = c
+                    UserDefaults.standard.set(c, forKey: "playerColor")
+                }
             } else {
                 errorMsg = lang.t(
                     "No profile found. Please register.",

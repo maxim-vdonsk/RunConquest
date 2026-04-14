@@ -189,6 +189,11 @@ struct ProfileView: View {
                                     .onTapGesture {
                                         savedColor = c
                                         UserDefaults.standard.set(c, forKey: "playerColor")
+                                        Task {
+                                            await SupabaseService.shared.updatePlayerColor(
+                                                playerName: playerName, color: c
+                                            )
+                                        }
                                     }
                                 }
                             }
