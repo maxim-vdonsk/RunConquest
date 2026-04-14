@@ -48,11 +48,12 @@ struct RunMapView: UIViewRepresentable {
         mapView.location.options.puckBearingEnabled = true
         context.coordinator.mapView = mapView
 
-        // Ждём загрузки стиля перед добавлением слоёв
-        mapView.mapboxMap.onStyleLoaded.observeNext { [weak mapView] _ in
-            guard let mapView else { return }
-            context.coordinator.isStyleLoaded = true
-            context.coordinator.applyPendingUpdate(mapView: mapView)
+        // Подписываемся на каждую загрузку стиля (observe, не observeNext),
+        // чтобы слои восстанавливались после memory-pressure / переключения табов
+        mapView.mapboxMap.onStyleLoaded.observe { [weak mapView, weak coord = context.coordinator] _ in
+            guard let mapView, let coord else { return }
+            coord.isStyleLoaded = true
+            coord.applyPendingUpdate(mapView: mapView)
         }.store(in: &context.coordinator.cancelables)
 
         return mapView
@@ -165,20 +166,60 @@ struct RunMapView: UIViewRepresentable {
             return total
         }
 
+        // Строит коридор (ribbon) шириной radius вдоль маршрута.
+        // Левая сторона → правая сторона в обратном порядке → замкнутое кольцо.
         func makeBufferedPolygon(coords: [CLLocationCoordinate2D], radius: Double) -> [CLLocationCoordinate2D] {
-            var result: [CLLocationCoordinate2D] = []
-            for coord in coords {
-                for i in 0..<12 {
-                    let angle = Double(i) * (2 * .pi / 12)
-                    result.append(CLLocationCoordinate2D(
-                        latitude: coord.latitude + (radius / 111320) * cos(angle),
-                        longitude: coord.longitude + (radius / (111320 * cos(coord.latitude * .pi / 180))) * sin(angle)
-                    ))
-                }
+            guard coords.count >= 2 else {
+                guard let c = coords.first else { return [] }
+                return makeCircle(center: c, radius: radius)
             }
-            // GeoJSON требует замкнутое кольцо: первая и последняя точки должны совпадать
+
+            var left:  [CLLocationCoordinate2D] = []
+            var right: [CLLocationCoordinate2D] = []
+
+            for i in 0..<coords.count {
+                let c = coords[i]
+                let cosLat = max(cos(c.latitude * .pi / 180.0), 1e-6)
+
+                // Направление: от предыдущей точки к следующей (на краях — ближайший сегмент)
+                let prev = coords[max(0, i - 1)]
+                let next = coords[min(coords.count - 1, i + 1)]
+
+                // Вектор направления в метрах
+                let dLonM = (next.longitude - prev.longitude) * 111320.0 * cosLat
+                let dLatM = (next.latitude  - prev.latitude)  * 111320.0
+                let len   = sqrt(dLonM * dLonM + dLatM * dLatM)
+                guard len > 0.5 else { continue }
+
+                // Левый перпендикуляр (поворот CCW 90°): (-dLatM, dLonM)
+                let latOff = ( dLonM / len * radius) / 111320.0
+                let lonOff = (-dLatM / len * radius) / (111320.0 * cosLat)
+
+                left.append(CLLocationCoordinate2D(latitude: c.latitude + latOff, longitude: c.longitude + lonOff))
+                right.append(CLLocationCoordinate2D(latitude: c.latitude - latOff, longitude: c.longitude - lonOff))
+            }
+
+            guard !left.isEmpty else { return [] }
+
+            var result = left
+            result.append(contentsOf: right.reversed())
             if let first = result.first { result.append(first) }
             return result
+        }
+
+        // Вспомогательная функция: круг вокруг одной точки
+        func makeCircle(center: CLLocationCoordinate2D, radius: Double) -> [CLLocationCoordinate2D] {
+            let cosLat = max(cos(center.latitude * .pi / 180.0), 1e-6)
+            var pts: [CLLocationCoordinate2D] = []
+            for i in 0..<16 {
+                let a = Double(i) * (2 * .pi / 16.0)
+                pts.append(CLLocationCoordinate2D(
+                    latitude:  center.latitude  + cos(a) * radius / 111320.0,
+                    longitude: center.longitude + sin(a) * radius / (111320.0 * cosLat)
+                ))
+            }
+            if let first = pts.first { pts.append(first) }
+            return pts
         }
 
         func colorToHex(_ color: String) -> String {
