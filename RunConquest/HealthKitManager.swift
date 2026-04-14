@@ -107,10 +107,10 @@ class HealthKitManager {
             anchor: nil,
             limit: HKObjectQueryNoLimit
         ) { [weak self] _, samples, _, _, _ in
-            self?.applyHeartRateSamples(samples)
+            Task { @MainActor [weak self] in self?.applyHeartRateSamples(samples) }
         }
         query.updateHandler = { [weak self] _, samples, _, _, _ in
-            self?.applyHeartRateSamples(samples)
+            Task { @MainActor [weak self] in self?.applyHeartRateSamples(samples) }
         }
         store.execute(query)
         heartRateQuery = query
