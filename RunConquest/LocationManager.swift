@@ -149,8 +149,8 @@ class LocationManager: NSObject, CLLocationManagerDelegate {
             self.updateCurrentPace(speed: speedMs)
             self.lastLocation = location
 
-            // Площадь территории
-            self.conqueredArea = Double(self.routeCoordinates.count) * 30 * 30 * .pi / 1_000_000 * 1_000_000
+            // Площадь территории — convex hull маршрута
+            self.conqueredArea = polygonAreaM2(convexHull(self.routeCoordinates))
 
             self.checkSplit()
         }
@@ -161,4 +161,66 @@ class LocationManager: NSObject, CLLocationManagerDelegate {
     var formattedElapsed: String { formatDuration(seconds: elapsedSeconds) }
     var formattedPace: String    { formatPace(seconds: currentPaceSec) }
     var formattedAvgPace: String { formatPace(seconds: avgPaceSec) }
+}
+
+// MARK: - Геометрические утилиты
+
+/// Выпуклая оболочка набора координат.
+/// Алгоритм: Andrew's Monotone Chain, O(n log n).
+/// Возвращает незамкнутый полигон (первая точка ≠ последней).
+func convexHull(_ points: [CLLocationCoordinate2D]) -> [CLLocationCoordinate2D] {
+    guard points.count >= 3 else { return points }
+
+    let cosLat = max(cos(points[0].latitude * .pi / 180), 1e-6)
+
+    typealias Pt = (x: Double, y: Double, coord: CLLocationCoordinate2D)
+
+    let proj: [Pt] = points.map {
+        (x: $0.longitude * 111_320.0 * cosLat,
+         y: $0.latitude  * 111_320.0,
+         coord: $0)
+    }
+    let sorted = proj.sorted { $0.x < $1.x || ($0.x == $1.x && $0.y < $1.y) }
+
+    func cross(_ O: Pt, _ A: Pt, _ B: Pt) -> Double {
+        (A.x - O.x) * (B.y - O.y) - (A.y - O.y) * (B.x - O.x)
+    }
+
+    var lower: [Pt] = []
+    for p in sorted {
+        while lower.count >= 2 && cross(lower[lower.count - 2], lower[lower.count - 1], p) <= 0 {
+            lower.removeLast()
+        }
+        lower.append(p)
+    }
+
+    var upper: [Pt] = []
+    for p in sorted.reversed() {
+        while upper.count >= 2 && cross(upper[upper.count - 2], upper[upper.count - 1], p) <= 0 {
+            upper.removeLast()
+        }
+        upper.append(p)
+    }
+
+    lower.removeLast()
+    upper.removeLast()
+    return (lower + upper).map { $0.coord }
+}
+
+/// Площадь полигона в квадратных метрах (формула Шуэлейса).
+/// Принимает незамкнутый полигон.
+func polygonAreaM2(_ coords: [CLLocationCoordinate2D]) -> Double {
+    guard coords.count >= 3 else { return 0 }
+    let cosLat = max(cos(coords[0].latitude * .pi / 180), 1e-6)
+    var area = 0.0
+    let n = coords.count
+    for i in 0..<n {
+        let j = (i + 1) % n
+        let xi = coords[i].longitude * 111_320.0 * cosLat
+        let yi = coords[i].latitude  * 111_320.0
+        let xj = coords[j].longitude * 111_320.0 * cosLat
+        let yj = coords[j].latitude  * 111_320.0
+        area += xi * yj - xj * yi
+    }
+    return abs(area) / 2
 }

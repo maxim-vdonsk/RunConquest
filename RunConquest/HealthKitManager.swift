@@ -8,7 +8,7 @@ import Observation
 class HealthKitManager {
     private let store = HKHealthStore()
     private var workoutBuilder: HKWorkoutBuilder?
-    private var heartRateQuery: HKObserverQuery?
+    private var heartRateQuery: HKAnchoredObjectQuery?
     private var pollTimer: Timer?
 
     var isAvailable: Bool { HKHealthStore.isHealthDataAvailable() }
@@ -91,16 +91,42 @@ class HealthKitManager {
         completion(elapsed)
     }
 
-    // MARK: - Heart Rate Polling
+    // MARK: - Heart Rate Live Subscription
 
     private func startHeartRatePolling() {
-        pollTimer = Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { [weak self] _ in
-            Task { @MainActor [weak self] in
-                self?.queryLatestHeartRate()
-                self?.queryCalories()
-            }
+        guard let start = workoutStartDate else { return }
+
+        let type = HKQuantityType(.heartRate)
+        let predicate = HKQuery.predicateForSamples(withStart: start, end: nil)
+
+        // HKAnchoredObjectQuery — живая подписка: updateHandler срабатывает
+        // каждый раз, когда Watch пишет новый сэмпл пульса в HealthKit.
+        let query = HKAnchoredObjectQuery(
+            type: type,
+            predicate: predicate,
+            anchor: nil,
+            limit: HKObjectQueryNoLimit
+        ) { [weak self] _, samples, _, _, _ in
+            self?.applyHeartRateSamples(samples)
         }
-        queryLatestHeartRate()
+        query.updateHandler = { [weak self] _, samples, _, _, _ in
+            self?.applyHeartRateSamples(samples)
+        }
+        store.execute(query)
+        heartRateQuery = query
+
+        // Калории обновляем таймером — они не критичны для реалтайма
+        pollTimer = Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { [weak self] _ in
+            Task { @MainActor [weak self] in self?.queryCalories() }
+        }
+    }
+
+    private func applyHeartRateSamples(_ samples: [HKSample]?) {
+        guard let sample = (samples as? [HKQuantitySample])?
+            .sorted(by: { $0.startDate < $1.startDate })
+            .last else { return }
+        let bpm = Int(sample.quantity.doubleValue(for: HKUnit(from: "count/min")))
+        Task { @MainActor [weak self] in self?.heartRate = bpm }
     }
 
     private func stopHeartRatePolling() {
@@ -108,19 +134,6 @@ class HealthKitManager {
         pollTimer = nil
         if let query = heartRateQuery { store.stop(query) }
         heartRateQuery = nil
-    }
-
-    private func queryLatestHeartRate() {
-        guard let start = workoutStartDate else { return }
-        let type = HKQuantityType(.heartRate)
-        let predicate = HKQuery.predicateForSamples(withStart: start, end: Date())
-        let sort = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: false)
-        let query = HKSampleQuery(sampleType: type, predicate: predicate, limit: 1, sortDescriptors: [sort]) { [weak self] _, samples, _ in
-            guard let sample = samples?.first as? HKQuantitySample else { return }
-            let bpm = Int(sample.quantity.doubleValue(for: HKUnit(from: "count/min")))
-            Task { @MainActor [weak self] in self?.heartRate = bpm }
-        }
-        store.execute(query)
     }
 
     private func queryCalories() {

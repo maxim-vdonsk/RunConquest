@@ -117,8 +117,14 @@ struct RunMapView: UIViewRepresentable {
         }
 
         func addZone(mapView: MapboxMaps.MapView, id: String, coords: [CLLocationCoordinate2D], colorHex: String, opacity: Double) {
-            let buffered = makeBufferedPolygon(coords: coords, radius: 30)
-            let polygon = Polygon([buffered.map { LocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude) }])
+            let hull = convexHull(coords)
+            let ring: [CLLocationCoordinate2D]
+            if hull.count >= 3 {
+                ring = hull + [hull[0]]   // замыкаем кольцо
+            } else {
+                ring = makeBufferedPolygon(coords: coords, radius: 30)  // фолбэк для коротких маршрутов
+            }
+            let polygon = Polygon([ring.map { LocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude) }])
 
             var source = GeoJSONSource(id: id)
             source.data = .geometry(.polygon(polygon))
