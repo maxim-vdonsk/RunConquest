@@ -250,8 +250,8 @@ struct AuthView: View {
                     "Профиль не найден. Пожалуйста, зарегистрируйся."
                 )
             }
-        case .failure(let msg):
-            errorMsg = msg
+        case .failure(let err):
+            errorMsg = err.message
         }
     }
 
@@ -276,8 +276,8 @@ struct AuthView: View {
             } else {
                 savedName = trimCallsign
             }
-        case .failure(let msg):
-            errorMsg = msg
+        case .failure(let err):
+            errorMsg = err.message
         }
     }
 }

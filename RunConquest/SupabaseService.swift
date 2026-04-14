@@ -62,6 +62,10 @@ class SupabaseService {
         let email: String?
     }
 
+    struct AuthError: Error {
+        let message: String
+    }
+
     private func makeAuthRequest(_ path: String, body: Data?) -> URLRequest? {
         guard let url = URL(string: SUPABASE_URL + path) else { return nil }
         var request = URLRequest(url: url)
@@ -72,31 +76,31 @@ class SupabaseService {
         return request
     }
 
-    func signUp(email: String, password: String) async -> Result<(user: AuthUser, needsConfirmation: Bool), String> {
+    func signUp(email: String, password: String) async -> Result<(user: AuthUser, needsConfirmation: Bool), AuthError> {
         let body = ["email": email, "password": password]
         guard let bodyData = try? JSONSerialization.data(withJSONObject: body),
               let request = makeAuthRequest("/auth/v1/signup", body: bodyData) else {
-            return .failure("Request error")
+            return .failure(AuthError(message: "Request error"))
         }
         guard let (data, _) = try? await URLSession.shared.data(for: request),
               let response = try? JSONDecoder().decode(SupabaseAuthResponse.self, from: data) else {
-            return .failure("Network error")
+            return .failure(AuthError(message: "Network error"))
         }
-        if let errMsg = response.errorMessage { return .failure(errMsg) }
-        guard let user = response.authUser else { return .failure("Unknown error") }
+        if let errMsg = response.errorMessage { return .failure(AuthError(message: errMsg)) }
+        guard let user = response.authUser else { return .failure(AuthError(message: "Unknown error")) }
         let needsConfirmation = response.access_token == nil
         return .success((user: user, needsConfirmation: needsConfirmation))
     }
 
-    func signIn(email: String, password: String) async -> Result<AuthUser, String> {
+    func signIn(email: String, password: String) async -> Result<AuthUser, AuthError> {
         let body = ["email": email, "password": password]
         guard let bodyData = try? JSONSerialization.data(withJSONObject: body),
               let request = makeAuthRequest("/auth/v1/token?grant_type=password", body: bodyData) else {
-            return .failure("Request error")
+            return .failure(AuthError(message: "Request error"))
         }
         guard let (data, _) = try? await URLSession.shared.data(for: request),
               let response = try? JSONDecoder().decode(SupabaseAuthResponse.self, from: data) else {
-            return .failure("Network error")
+            return .failure(AuthError(message: "Network error"))
         }
         if let errMsg = response.errorMessage { return .failure(errMsg) }
         guard let user = response.authUser else { return .failure("Invalid credentials") }
